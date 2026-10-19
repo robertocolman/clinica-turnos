@@ -3,10 +3,11 @@
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
-    "start": "ng serve",
+    "start": "ng serve --proxy-config proxy.conf.json",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "compodoc": "compodoc -p tsconfig.app.json -s"
   },
   "private": true,
   "packageManager": "npm@11.9.0",
@@ -24,6 +25,7 @@
     "@angular/build": "^21.2.25",
     "@angular/cli": "^21.2.25",
     "@angular/compiler-cli": "^21.2.0",
+    "@compodoc/compodoc": "^2.0.0",
     "jsdom": "^28.0.0",
     "prettier": "^3.8.1",
     "typescript": "~5.9.2",
