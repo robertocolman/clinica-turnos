@@ -1,5 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { AuthService } from '../../core/services/auth.service';
+import { ReservasService } from '../../core/services/reservas.service';
 
 
 @Component({
@@ -29,8 +30,23 @@ import { AuthService } from '../../core/services/auth.service';
             <li>El valor de la consulta queda <strong>congelado</strong> al momento de la reserva.</li>
           </ul>
         </div>
+
+        <div class="turnos-section">
+          <h4>Mis turnos</h4>
+
+          @for (reserva of reservas(); track reserva.id) {
+          <div class="turno-card">
+            <p><strong>ID:</strong> {{ reserva.id }}</p>
+            <p><strong>Fecha:</strong> {{ reserva.fecha_hora }}</p>
+            <p><strong>Estado:</strong> {{ reserva.estado }}</p>
+            <p><strong>Valor:</strong> $ {{ reserva.valor_consulta }}</p>
+          </div>
+          }
+        </div>
+
       </div>
     </div>
+    
   `,
   styles: [`
     .page-container {
@@ -96,8 +112,22 @@ import { AuthService } from '../../core/services/auth.service';
       padding-left: 1.25rem;
       line-height: 1.6;
     }
+    .turnos-section {
+      margin-top: 2rem;
+    }
+    .turno-card {
+      border: 1px solid #cbd5e1;
+      padding: 1rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      background: #f8fafc;
+    }
   `],
 })
 export class PacienteTurnosComponent {
   protected readonly authService = inject(AuthService);
+  protected readonly reservasService = inject(ReservasService);
+
+  protected readonly reservas = this.reservasService.reservas;
+
 }
