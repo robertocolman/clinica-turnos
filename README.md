@@ -19,7 +19,7 @@ Sistema web para la gestion integral de turnos medicos en una clinica. Permite l
 - Nahuel Valenzuela: Login, roles y estructura del frontend (P2)
 - Lucia: Reservas: reglas de negocio y API (P3)
 - Esteban: Medicos: agenda y valor de consulta (P4)
-- Mar: Reservas en el frontend (P5)
+- Martina Ascona: Reservas en el frontend (P5)
 
 ## Estructura del Proyecto
 ```text
