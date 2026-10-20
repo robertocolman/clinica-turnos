@@ -5,8 +5,11 @@ node_modules/
 # Compiled output
 dist/
 **/dist/
+documentation/
+**/documentation/
 .angular/
 **/.angular/
+
 
 # Environment files
 .env

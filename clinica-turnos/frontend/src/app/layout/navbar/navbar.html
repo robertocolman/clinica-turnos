@@ -1,0 +1,61 @@
+<header class="navbar-container">
+  <div class="navbar-wrapper">
+    <!-- Brand / Logotipo -->
+    <div class="navbar-brand">
+      <a routerLink="/" class="brand-link">
+        <span class="brand-icon">🏥</span>
+        <div class="brand-text">
+          <span class="brand-title">Clínica Médica</span>
+          <span class="brand-subtitle">Gestión de Turnos</span>
+        </div>
+      </a>
+    </div>
+
+    @if (authService.isAuthenticated()) {
+      <!-- Navegacion reactiva segun el Rol del usuario -->
+      <nav class="navbar-nav">
+        @switch (authService.userRole()) {
+          @case (RolUsuario.PACIENTE) {
+            <a routerLink="/paciente/turnos" routerLinkActive="active" class="nav-item">
+              📅 Mis Turnos
+            </a>
+            <a routerLink="/paciente/reservar" routerLinkActive="active" class="nav-item">
+              ➕ Reservar Turno
+            </a>
+          }
+          @case (RolUsuario.MEDICO) {
+            <a routerLink="/medico/agenda" routerLinkActive="active" class="nav-item">
+              📋 Mi Agenda de Turnos
+            </a>
+          }
+          @case (RolUsuario.ADMINISTRADOR) {
+            <a routerLink="/admin/panel" routerLinkActive="active" class="nav-item">
+              📊 Panel General de Turnos
+            </a>
+            <a routerLink="/admin/medicos" routerLinkActive="active" class="nav-item">
+              🩺 Valores de Consulta
+            </a>
+          }
+        }
+      </nav>
+
+      <!-- Informacion del Usuario y Logout -->
+      <div class="navbar-user">
+        <div class="user-info">
+          <span class="user-name">{{ authService.userFullName() }}</span>
+          <span class="role-badge" [class]="'badge-' + authService.userRole()?.toLowerCase()">
+            {{ authService.userRole() }}
+          </span>
+        </div>
+        <button (click)="onLogout()" class="btn-logout" title="Cerrar sesión">
+          Salir 🚪
+        </button>
+      </div>
+    } @else {
+      <!-- Usuario no autenticado -->
+      <div class="navbar-actions">
+        <a routerLink="/login" class="btn-login-nav">Iniciar Sesión</a>
+      </div>
+    }
+  </div>
+</header>
