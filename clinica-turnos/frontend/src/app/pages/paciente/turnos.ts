@@ -44,7 +44,6 @@ import { ReservasService } from '../../core/services/reservas.service';
                 {{ medico.nombre }} - $ {{ medico.valor }}
               </option>
             }
-
           </select>
 
           <label>Fecha</label>
@@ -63,40 +62,59 @@ import { ReservasService } from '../../core/services/reservas.service';
                 {{ horario }}
               </option>
             }
-
           </select>
 
           <button
             class="btn-reservar"
             (click)="reservarTurno()">
-
             Reservar turno
-
           </button>
-
         </div>
 
         <div class="turnos-section">
           <h4>Mis turnos</h4>
+          <table class="tabla-turnos">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Fecha</th>
+                <th>Estado</th>
+                <th>Valor</th>
+                <th>Acción</th>
+              </tr>
+            </thead>
 
-          @for (reserva of reservas(); track reserva.id) {
-          <div class="turno-card">
-            <p><strong>ID:</strong> {{ reserva.id }}</p>
-            <p><strong>Fecha:</strong> {{ reserva.fecha_hora }}</p>
-            <p><strong>Estado:</strong> {{ reserva.estado }}</p>
-            <p><strong>Valor:</strong> $ {{ reserva.valor_consulta }}</p>
-            
-            @if (reserva.estado === 'ACTIVO') {
-              <button
-                class="btn-cancelar"
-                (click)="cancelarTurno(reserva.id)">
-                Cancelar turno
-              </button>
-            }
-          </div>
-          }
+            <tbody>
+              @for (reserva of reservas(); track reserva.id) {
+                <tr>
+                  <td>{{ reserva.id }}</td>
+                  <td>{{ reserva.fecha_hora }}</td>
+                  <td>
+                    <span
+                      class="estado"
+                      [class.estado-activo]="reserva.estado === 'ACTIVO'"
+                      [class.estado-cancelado]="reserva.estado === 'CANCELADO'">
+                      {{ reserva.estado }}
+                    </span>
+                  </td>
+
+                  <td>$ {{ reserva.valor_consulta }}</td>
+                  <td>
+                    @if (reserva.estado === 'ACTIVO') {
+                      <button
+                        class="btn-cancelar"
+                        (click)="cancelarTurno(reserva.id)">
+                        Cancelar
+                      </button>
+                    } @else {
+                      -
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
         </div>
-
       </div>
     </div>
     
@@ -212,6 +230,45 @@ import { ReservasService } from '../../core/services/reservas.service';
 
     .btn-reservar:hover {
       background: #1d4ed8;
+    }
+    
+    .tabla-turnos {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+
+    .tabla-turnos th {
+      background: #2563eb;
+      color: white;
+      padding: 12px;
+      text-align: left;
+    }
+
+    .tabla-turnos td {
+      border: 1px solid #e2e8f0;
+      padding: 12px;
+    }
+
+    .tabla-turnos tr:nth-child(even) {
+      background: #f8fafc;
+    }
+
+    .estado {
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: bold;
+    }
+
+    .estado-activo {
+      background: #dcfce7;
+      color: #15803d;
+    }
+
+    .estado-cancelado {
+      background: #fee2e2;
+      color: #b91c1c;
     }
   `],
 })
