@@ -1,12 +1,13 @@
 import { Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { DatePipe } from '@angular/common';
 import { AuthService } from '../../core/services/auth.service';
 import { ReservasService } from '../../core/services/reservas.service';
 
 
 @Component({
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, DatePipe],
   selector: 'app-paciente-turnos',
   template: `
     <div class="page-container">
@@ -52,7 +53,9 @@ import { ReservasService } from '../../core/services/reservas.service';
 
           <input
             type="date"
-            [(ngModel)]="fechaSeleccionada">
+            [(ngModel)]="fechaSeleccionada"
+            [min]="fechaMinima"
+            [max]="fechaMaxima">
 
           <label>Horario</label>
 
@@ -90,7 +93,7 @@ import { ReservasService } from '../../core/services/reservas.service';
               @for (reserva of reservas(); track reserva.id) {
                 <tr>
                   <td>{{ reserva.id }}</td>
-                  <td>{{ reserva.fecha_hora }}</td>
+                  <td>{{ reserva.fecha_hora | date:'dd/MM/yyyy HH:mm' }}</td>
                   <td>
                     <span
                       class="estado"
@@ -296,11 +299,18 @@ export class PacienteTurnosComponent {
     '14:00',
     '15:00'
   ];
+
+  fechaMinima = new Date().toISOString().split('T')[0];
+
+  fechaMaxima = new Date(
+    Date.now() + (30 * 24 * 60 * 60 * 1000)
+  ).toISOString().split('T')[0];  
   
   medicoSeleccionado = 1;
   fechaSeleccionada = '';
   horarioSeleccionado = '08:00';
-
+  mensajeExito = '';
+  
   cancelarTurno(id: number): void {
   this.reservasService.cancelarReserva(id);
   }
@@ -322,6 +332,7 @@ export class PacienteTurnosComponent {
       `${this.fechaSeleccionada}T${this.horarioSeleccionado}:00`,
       medico.valor
     );
+    this.mensajeExito = '✅ Turno reservado correctamente';
     this.medicoSeleccionado = 1;
     this.fechaSeleccionada = '';
     this.horarioSeleccionado = '08:00';
