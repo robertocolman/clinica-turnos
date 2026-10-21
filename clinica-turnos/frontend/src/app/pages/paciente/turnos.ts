@@ -5,6 +5,7 @@ import { ReservasService } from '../../core/services/reservas.service';
 
 
 @Component({
+  standalone: true,
   imports: [FormsModule],
   selector: 'app-paciente-turnos',
   template: `
@@ -19,8 +20,9 @@ import { ReservasService } from '../../core/services/reservas.service';
         <div class="info-banner">
           <h3>📌 Módulo de Reservas (Frontend)</h3>
           <p>
-            Esta sección corresponde a <strong>Mar (P5)</strong> para la selección de médicos,
-            reserva de turnos en horarios de 8 a 16 hs, cancelación (hasta el día anterior) y visualización de valores congelados.
+            Desde esta pantalla usted podrá reservar nuevos turnos,
+            consultar sus reservas vigentes y cancelar turnos con hasta
+            24 horas de anticipación, sin excepciones.
           </p>
         </div>
 
