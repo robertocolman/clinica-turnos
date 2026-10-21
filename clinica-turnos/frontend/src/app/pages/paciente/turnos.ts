@@ -40,6 +40,14 @@ import { ReservasService } from '../../core/services/reservas.service';
             <p><strong>Fecha:</strong> {{ reserva.fecha_hora }}</p>
             <p><strong>Estado:</strong> {{ reserva.estado }}</p>
             <p><strong>Valor:</strong> $ {{ reserva.valor_consulta }}</p>
+            
+            @if (reserva.estado === 'ACTIVO') {
+              <button
+                class="btn-cancelar"
+                (click)="cancelarTurno(reserva.id)">
+                Cancelar turno
+              </button>
+            }
           </div>
           }
         </div>
@@ -122,6 +130,18 @@ import { ReservasService } from '../../core/services/reservas.service';
       margin-bottom: 1rem;
       background: #f8fafc;
     }
+    .btn-cancelar {
+      background: #dc2626;
+      color: white;
+      border: none;
+      padding: 0.6rem 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .btn-cancelar:hover {
+      background: #b91c1c;
+    }
   `],
 })
 export class PacienteTurnosComponent {
@@ -129,5 +149,9 @@ export class PacienteTurnosComponent {
   protected readonly reservasService = inject(ReservasService);
 
   protected readonly reservas = this.reservasService.reservas;
+
+  cancelarTurno(id: number): void {
+  this.reservasService.cancelarReserva(id);
+}
 
 }

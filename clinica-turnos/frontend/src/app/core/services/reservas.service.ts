@@ -26,4 +26,13 @@ export class ReservasService {
   ]);
 
   readonly reservas = this._reservas.asReadonly();
+  cancelarReserva(id: number): void {
+    const reservasActualizadas = this._reservas().map(reserva =>
+      reserva.id === id
+        ? { ...reserva, estado: EstadoReserva.CANCELADO }
+        : reserva
+    );
+
+    this._reservas.set(reservasActualizadas);
+    }
 }
