@@ -1,9 +1,11 @@
 import { Component, inject } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
 import { ReservasService } from '../../core/services/reservas.service';
 
 
 @Component({
+  imports: [FormsModule],
   selector: 'app-paciente-turnos',
   template: `
     <div class="page-container">
@@ -29,6 +31,49 @@ import { ReservasService } from '../../core/services/reservas.service';
             <li>Cancelación de turnos permitida <strong>hasta el día anterior</strong> a la consulta.</li>
             <li>El valor de la consulta queda <strong>congelado</strong> al momento de la reserva.</li>
           </ul>
+        </div>
+        
+        <div class="reserva-form">
+          <h3>Reservar turno</h3>
+          <label>Médico</label>
+          <select
+            [(ngModel)]="medicoSeleccionado">
+
+            @for (medico of medicos; track medico.id) {
+              <option [value]="medico.id">
+                {{ medico.nombre }} - $ {{ medico.valor }}
+              </option>
+            }
+
+          </select>
+
+          <label>Fecha</label>
+
+          <input
+            type="date"
+            [(ngModel)]="fechaSeleccionada">
+
+          <label>Horario</label>
+
+          <select
+            [(ngModel)]="horarioSeleccionado">
+
+            @for (horario of horarios; track horario) {
+              <option [value]="horario">
+                {{ horario }}
+              </option>
+            }
+
+          </select>
+
+          <button
+            class="btn-reservar"
+            (click)="reservarTurno()">
+
+            Reservar turno
+
+          </button>
+
         </div>
 
         <div class="turnos-section">
@@ -142,16 +187,84 @@ import { ReservasService } from '../../core/services/reservas.service';
     .btn-cancelar:hover {
       background: #b91c1c;
     }
+    
+    .reserva-form {
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+      margin-top: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    .reserva-form input,
+    .reserva-form select {
+      padding: 0.5rem;
+    }
+
+    .btn-reservar {
+      background: #2563eb;
+      color: white;
+      border: none;
+      padding: 0.8rem;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .btn-reservar:hover {
+      background: #1d4ed8;
+    }
   `],
 })
+
 export class PacienteTurnosComponent {
   protected readonly authService = inject(AuthService);
   protected readonly reservasService = inject(ReservasService);
 
   protected readonly reservas = this.reservasService.reservas;
 
+  medicos = [
+    { id: 1, nombre: 'Dr. Pérez', valor: 15000 },
+    { id: 2, nombre: 'Dra. Gómez', valor: 18000 },
+  ];
+
+  horarios = [
+    '08:00',
+    '09:00',
+    '10:00',
+    '11:00',
+    '12:00',
+    '13:00',
+    '14:00',
+    '15:00'
+  ];
+  
+  medicoSeleccionado = 1;
+  fechaSeleccionada = '';
+  horarioSeleccionado = '08:00';
+
   cancelarTurno(id: number): void {
   this.reservasService.cancelarReserva(id);
-}
+  }
 
+  reservarTurno(): void {
+
+    const medico = this.medicos.find(
+      m => m.id === Number(this.medicoSeleccionado)
+    );
+
+    if (!medico || !this.fechaSeleccionada) {
+      alert('Debe seleccionar una fecha');
+      return;
+    }
+
+    this.reservasService.crearReserva(
+      medico.id,
+      2,
+      `${this.fechaSeleccionada}T${this.horarioSeleccionado}:00`,
+      medico.valor
+    );
+    this.medicoSeleccionado = 1;
+    this.fechaSeleccionada = '';
+    this.horarioSeleccionado = '08:00';
+    }
 }

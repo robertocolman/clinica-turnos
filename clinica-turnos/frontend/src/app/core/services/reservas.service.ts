@@ -35,4 +35,26 @@ export class ReservasService {
 
     this._reservas.set(reservasActualizadas);
     }
+
+  crearReserva(
+    idMedico: number,
+    idPaciente: number,
+    fechaHora: string,
+    valorConsulta: number
+  ): void {
+
+    const nuevaReserva: Reserva = {
+      id: Date.now(),
+      id_medico: idMedico,
+      id_paciente: idPaciente,
+      fecha_hora: fechaHora,
+      estado: EstadoReserva.ACTIVO,
+      valor_consulta: valorConsulta
+    };
+
+    this._reservas.set([
+      ...this._reservas(),
+      nuevaReserva
+    ]);
+  }
 }
