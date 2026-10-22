@@ -115,7 +115,7 @@ export class AuthController {
     status: 200,
     description: 'Credenciales de prueba disponibles.',
   })
-  obtenerUsuariosPrueba() {
+  async obtenerUsuariosPrueba() {
     return {
       mensaje: 'Usuarios de prueba para el inicio de sesion (desarrollo):',
       credencialesDisponibles: [
@@ -124,7 +124,7 @@ export class AuthController {
         { rol: 'PACIENTE', documento: '33333333', clave: 'paciente123', estado: 'ACTIVO' },
         { rol: 'PACIENTE (BAJA)', documento: '44444444', clave: 'baja123', estado: 'BAJA (Rebota)' },
       ],
-      usuarios: this.authService.obtenerUsuariosMock(),
+      usuarios: await this.authService.obtenerUsuariosMock(),
     };
   }
 }
