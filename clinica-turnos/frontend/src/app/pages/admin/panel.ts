@@ -24,27 +24,7 @@ import { FormsModule } from '@angular/forms';
             reservas (cancelaciones hasta el momento de inicio de la consulta) y modificar los valores de consulta de los médicos.
           </p>
         </div>
-
-        <div class="filtros-admin">
-          <h4>Filtros</h4>
-          <label>Estado</label>
-          <select [(ngModel)]="filtroEstado">
-            <option value="">Todos</option>
-            <option value="ACTIVO">Activo</option>
-            <option value="CANCELADO">Cancelado</option>
-          </select>
-          <label>Médico</label>
-          <select [(ngModel)]="filtroMedico">
-            <option value="">Todos</option>
-            <option value="1">Dr. Pérez</option>
-            <option value="2">Dra. Gómez</option>
-          </select>
-          <label>Fecha</label>
-          <input
-            type="date"
-            [(ngModel)]="filtroFecha">
-        </div>
-        
+       
         <div class="reserva-admin">
           <h4>Reservar para paciente</h4>
           <label>Paciente</label>
@@ -82,6 +62,26 @@ import { FormsModule } from '@angular/forms';
           </button>
         </div>
 
+        <div class="filtros-admin">
+          <h4>Filtros</h4>
+          <label>Estado</label>
+          <select [(ngModel)]="filtroEstado">
+            <option value="">Todos</option>
+            <option value="ACTIVO">Activo</option>
+            <option value="CANCELADO">Cancelado</option>
+          </select>
+          <label>Médico</label>
+          <select [(ngModel)]="filtroMedico">
+            <option value="">Todos</option>
+            <option value="1">Dr. Pérez</option>
+            <option value="2">Dra. Gómez</option>
+          </select>
+          <label>Fecha</label>
+          <input
+            type="date"
+            [(ngModel)]="filtroFecha">
+        </div>  
+
         <div class="turnos-admin">
           <h4>Todos los turnos</h4>
           <table class="tabla-turnos">
@@ -89,6 +89,7 @@ import { FormsModule } from '@angular/forms';
               <tr>
                 <th>ID</th>
                 <th>Paciente</th>
+                <th>Médico</th>
                 <th>Fecha</th>
                 <th>Estado</th>
                 <th>Valor</th>
@@ -98,7 +99,8 @@ import { FormsModule } from '@angular/forms';
               @for (reserva of reservasFiltradas(); track reserva.id) {
                 <tr>
                   <td>{{ reserva.id }}</td>
-                  <td>{{ reserva.id_paciente }}</td>
+                  <td>{{ obtenerNombrePaciente(reserva.id_paciente) }}</td>
+                  <td>{{ obtenerNombreMedico(reserva.id_medico) }}</td>
                   <td>{{ reserva.fecha_hora }}</td>
                   <td>
                     <span
@@ -182,9 +184,14 @@ import { FormsModule } from '@angular/forms';
       line-height: 1.6;
     }
     .filtros-admin {
+      display: flex;
+      gap: 1rem;
+      align-items: end;
+      flex-wrap: wrap;
       margin-top: 2rem;
       margin-bottom: 2rem;
-    }
+}
+
     .filtros-admin select {
       padding: 0.5rem;
       margin-top: 0.5rem;
@@ -231,6 +238,7 @@ import { FormsModule } from '@angular/forms';
     .reserva-admin input,
     .reserva-admin select {
       padding: 0.5rem;
+      min-width: 160px;
     }
   `],
 })
@@ -304,5 +312,32 @@ export class AdminPanelComponent {
       `${this.fechaSeleccionada}T${this.horarioSeleccionado}:00`,
       medico.valor
     );
+  }
+  obtenerNombrePaciente(id: number): string {
+    const paciente = this.pacientes.find(
+      p => p.id === id
+    );
+
+    return paciente?.nombre ?? `Paciente ${id}`;
+
+  }
+
+  obtenerNombreMedico(id: number): string {
+    const medico = this.medicos.find(
+      m => m.id === id
+    );
+
+    return medico?.nombre ?? `Médico ${id}`;
+  }
+  formatearFecha(fecha: string): string {
+    const date = new Date(fecha);
+
+    return date.toLocaleString('es-AR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   }
 }
