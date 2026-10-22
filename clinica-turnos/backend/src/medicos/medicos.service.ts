@@ -42,7 +42,7 @@ export class MedicosService {
    */
   async obtenerTodos(): Promise<MedicoResponse[]> {
     const medicos = await this.medicoRepository.find({
-      relations: ['usuario'],
+      relations: { usuario: true },
     });
 
     return medicos.map((m) => ({
@@ -62,7 +62,7 @@ export class MedicosService {
   async obtenerPorUsuarioId(usuarioId: number): Promise<Medico> {
     const medico = await this.medicoRepository.findOne({
       where: { usuarioId },
-      relations: ['usuario'],
+      relations: { usuario: true },
     });
 
     if (!medico) {
@@ -151,7 +151,7 @@ export class MedicosService {
   ): Promise<MedicoResponse> {
     const medico = await this.medicoRepository.findOne({
       where: { id: medicoId },
-      relations: ['usuario'],
+      relations: { usuario: true },
     });
 
     if (!medico) {
@@ -187,7 +187,7 @@ export class MedicosService {
     const medico = await this.obtenerPorUsuarioId(usuarioId);
     const turno = await this.turnoRepository.findOne({
       where: { id: turnoId },
-      relations: ['paciente'],
+      relations: { paciente: true },
     });
 
     if (!turno) {

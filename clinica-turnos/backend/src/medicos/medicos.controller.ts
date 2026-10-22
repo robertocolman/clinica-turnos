@@ -25,7 +25,7 @@ import { RolesGuard } from '../auth/guards/roles.guard.js';
 import { Roles } from '../auth/decorators/roles.decorator.js';
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import { RolUsuario } from '../auth/enums/rol.enum.js';
-import { UsuarioToken } from '../auth/interfaces/usuario-token.interface.js';
+import { JwtPayload } from '../auth/interfaces/jwt-payload.interface.js';
 
 @ApiTags('Médicos')
 @Controller('medicos')
@@ -58,7 +58,7 @@ export class MedicosController {
   })
   @ApiResponse({ status: 200, description: 'Agenda de turnos obtenida exitosamente.' })
   obtenerMiAgenda(
-    @CurrentUser() usuario: UsuarioToken,
+    @CurrentUser() usuario: JwtPayload,
     @Query('fecha') fecha?: string,
   ) {
     return this.medicosService.obtenerMiAgenda(usuario.sub, fecha);
@@ -69,7 +69,7 @@ export class MedicosController {
   @Roles(RolUsuario.MEDICO)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Obtener datos y valor de consulta del médico logueado' })
-  obtenerPerfil(@CurrentUser() usuario: UsuarioToken) {
+  obtenerPerfil(@CurrentUser() usuario: JwtPayload) {
     return this.medicosService.obtenerPorUsuarioId(usuario.sub);
   }
 
@@ -83,7 +83,7 @@ export class MedicosController {
   })
   @ApiResponse({ status: 200, description: 'Valor de consulta actualizado.' })
   actualizarValorConsulta(
-    @CurrentUser() usuario: UsuarioToken,
+    @CurrentUser() usuario: JwtPayload,
     @Body() dto: ActualizarValorConsultaDto,
   ) {
     return this.medicosService.actualizarValorConsulta(
@@ -123,7 +123,7 @@ export class MedicosController {
   cambiarEstadoTurno(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: CambiarEstadoTurnoDto,
-    @CurrentUser() usuario: UsuarioToken,
+    @CurrentUser() usuario: JwtPayload,
   ) {
     return this.medicosService.cambiarEstadoTurno(
       id,
