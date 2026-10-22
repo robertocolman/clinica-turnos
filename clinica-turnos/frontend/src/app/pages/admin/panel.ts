@@ -45,6 +45,43 @@ import { FormsModule } from '@angular/forms';
             [(ngModel)]="filtroFecha">
         </div>
         
+        <div class="reserva-admin">
+          <h4>Reservar para paciente</h4>
+          <label>Paciente</label>
+          <select [(ngModel)]="pacienteSeleccionado">
+            @for (paciente of pacientes; track paciente.id) {
+              <option [value]="paciente.id">
+                {{ paciente.nombre }}
+              </option>
+            }
+          </select>
+          <label>Médico</label>
+          <select [(ngModel)]="medicoSeleccionado">
+            @for (medico of medicos; track medico.id) {
+              <option [value]="medico.id">
+                {{ medico.nombre }}
+              </option>
+            }
+          </select>
+          <label>Fecha</label>
+          <input
+           type="date"
+           [(ngModel)]="fechaSeleccionada">
+          <label>Horario</label>
+          <select [(ngModel)]="horarioSeleccionado">
+            @for (horario of horarios; track horario) {
+             <option [value]="horario">
+              {{ horario }}
+            </option>
+            }
+          </select>
+          <button
+            class="btn-reservar"
+            (click)="reservarParaPaciente()">
+            Reservar para paciente
+          </button>
+        </div>
+
         <div class="turnos-admin">
           <h4>Todos los turnos</h4>
           <table class="tabla-turnos">
@@ -184,6 +221,17 @@ import { FormsModule } from '@angular/forms';
       background: #fee2e2;
       color: #b91c1c;
     }
+    .reserva-admin {
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+      margin-top: 2rem;
+      margin-bottom: 2rem;
+    }
+    .reserva-admin input,
+    .reserva-admin select {
+      padding: 0.5rem;
+    }
   `],
 })
 export class AdminPanelComponent {
@@ -191,7 +239,31 @@ export class AdminPanelComponent {
   protected readonly reservasService = inject(ReservasService);
 
   protected readonly reservas = this.reservasService.reservas;
+  
+  pacientes = [
+    { id: 1, nombre: 'Juan Pérez' },
+    { id: 2, nombre: 'Ana Gómez' },
+    { id: 3, nombre: 'Carlos López' }
+  ];
+  medicos = [
+    { id: 1, nombre: 'Dr. Pérez', valor: 15000 },
+    { id: 2, nombre: 'Dra. Gómez', valor: 18000 }
+  ];
+  horarios = [
+    '08:00',
+    '09:00',
+    '10:00',
+    '11:00',
+    '12:00',
+    '13:00',
+    '14:00',
+    '15:00'
+  ];
 
+  medicoSeleccionado = 1;
+  fechaSeleccionada = '';
+  horarioSeleccionado = '08:00';
+  pacienteSeleccionado = 1;
   filtroEstado = '';
   filtroMedico = '';
   filtroFecha = '';
@@ -216,5 +288,21 @@ export class AdminPanelComponent {
       );
     }
     return reservas;
+  }
+  reservarParaPaciente(): void {
+    const medico = this.medicos.find(
+      m => m.id === Number(this.medicoSeleccionado)
+    );
+
+    if (!medico || !this.fechaSeleccionada) {
+      return;
+    }
+
+    this.reservasService.crearReserva(
+      medico.id,
+      Number(this.pacienteSeleccionado),
+      `${this.fechaSeleccionada}T${this.horarioSeleccionado}:00`,
+      medico.valor
+    );
   }
 }
