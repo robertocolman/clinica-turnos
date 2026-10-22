@@ -1,8 +1,12 @@
 import { Component, inject } from '@angular/core';
 import { AuthService } from '../../core/services/auth.service';
+import { ReservasService } from '../../core/services/reservas.service';
+import { FormsModule } from '@angular/forms';
 
 
 @Component({
+  standalone: true,
+  imports: [FormsModule],
   selector: 'app-admin-panel',
   template: `
     <div class="page-container">
@@ -21,14 +25,57 @@ import { AuthService } from '../../core/services/auth.service';
           </p>
         </div>
 
-        <div class="rules-summary">
-          <h4>Operaciones Permitidas:</h4>
-          <ul>
-            <li>Reservar turnos para cualquier paciente.</li>
-            <li>Listar todos los turnos reservados en la clínica.</li>
-            <li>Cancelar turnos <strong>hasta el momento en que inicia la consulta</strong>.</li>
-            <li>Modificar el valor de la consulta de los médicos.</li>
-          </ul>
+        <div class="filtros-admin">
+          <h4>Filtros</h4>
+          <label>Estado</label>
+          <select [(ngModel)]="filtroEstado">
+            <option value="">Todos</option>
+            <option value="ACTIVO">Activo</option>
+            <option value="CANCELADO">Cancelado</option>
+          </select>
+          <label>Médico</label>
+          <select [(ngModel)]="filtroMedico">
+            <option value="">Todos</option>
+            <option value="1">Dr. Pérez</option>
+            <option value="2">Dra. Gómez</option>
+          </select>
+          <label>Fecha</label>
+          <input
+            type="date"
+            [(ngModel)]="filtroFecha">
+        </div>
+        
+        <div class="turnos-admin">
+          <h4>Todos los turnos</h4>
+          <table class="tabla-turnos">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Paciente</th>
+                <th>Fecha</th>
+                <th>Estado</th>
+                <th>Valor</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (reserva of reservasFiltradas(); track reserva.id) {
+                <tr>
+                  <td>{{ reserva.id }}</td>
+                  <td>{{ reserva.id_paciente }}</td>
+                  <td>{{ reserva.fecha_hora }}</td>
+                  <td>
+                    <span
+                      class="estado"
+                      [class.estado-activo]="reserva.estado === 'ACTIVO'"
+                      [class.estado-cancelado]="reserva.estado === 'CANCELADO'">
+                      {{ reserva.estado }}
+                    </span>
+                  </td>
+                  <td>$ {{ reserva.valor_consulta }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -97,8 +144,77 @@ import { AuthService } from '../../core/services/auth.service';
       padding-left: 1.25rem;
       line-height: 1.6;
     }
+    .filtros-admin {
+      margin-top: 2rem;
+      margin-bottom: 2rem;
+    }
+    .filtros-admin select {
+      padding: 0.5rem;
+      margin-top: 0.5rem;
+    }
+    .tabla-turnos {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    } 
+    .tabla-turnos th {
+      background: #dc2626;
+      color: white;
+      padding: 12px;
+      text-align: left;
+    }
+    .tabla-turnos td {
+      border: 1px solid #e2e8f0;
+      padding: 12px;
+    }
+    .tabla-turnos tr:nth-child(even) {
+      background: #f8fafc;
+    }
+    .estado {
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: bold;
+    }
+    .estado-activo {
+     background: #dcfce7;
+     color: #15803d;
+    }
+    .estado-cancelado {
+      background: #fee2e2;
+      color: #b91c1c;
+    }
   `],
 })
 export class AdminPanelComponent {
   protected readonly authService = inject(AuthService);
+  protected readonly reservasService = inject(ReservasService);
+
+  protected readonly reservas = this.reservasService.reservas;
+
+  filtroEstado = '';
+  filtroMedico = '';
+  filtroFecha = '';
+
+  reservasFiltradas() {
+    let reservas = this.reservas();
+
+    if (this.filtroEstado) {
+      reservas = reservas.filter(
+        r => r.estado === this.filtroEstado
+      );
+    }
+
+    if (this.filtroMedico) {
+      reservas = reservas.filter(
+        r => r.id_medico === Number(this.filtroMedico)
+      );
+    }
+    if (this.filtroFecha) {
+      reservas = reservas.filter(
+        r => r.fecha_hora.startsWith(this.filtroFecha)
+      );
+    }
+    return reservas;
+  }
 }
