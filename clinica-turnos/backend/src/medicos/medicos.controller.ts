@@ -25,7 +25,7 @@ import { RolesGuard } from '../auth/guards/roles.guard.js';
 import { Roles } from '../auth/decorators/roles.decorator.js';
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import { RolUsuario } from '../auth/enums/rol.enum.js';
-import { JwtPayload } from '../auth/interfaces/jwt-payload.interface.js';
+import type { JwtPayload } from '../auth/interfaces/jwt-payload.interface.js';
 
 @ApiTags('Médicos')
 @Controller('medicos')
