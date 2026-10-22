@@ -74,3 +74,14 @@ clinica-turnos/
    ```text
    http://localhost:4200
    ```
+
+## Usuarios de Prueba Disponibles
+
+Para facilitar la evaluacion del sistema, se encuentran disponibles las siguientes credenciales precargadas en la base de datos:
+
+| Rol | Documento (DNI) | Contraseña | Descripcion |
+| :--- | :--- | :--- | :--- |
+| Administrador | 11111111 | admin123 | Acceso al panel administrativo |
+| Medico | 22222222 | medico123 | Acceso a la agenda medica y atencion |
+| Paciente | 33333333 | paciente123 | Acceso al portal de reserva de turnos |
+| Paciente (Baja) | 44444444 | baja123 | Rechazo 401 por estado de usuario inactivo |
