@@ -43,12 +43,4 @@ export class LoginComponent {
       },
     });
   }
-
-  /**
-   * Helper para autocompletar credenciales en la grabacion del video o pruebas
-   */
-  llenarCredenciales(documento: string, clave: string): void {
-    this.loginForm.patchValue({ documento, clave });
-    this.errorMessage.set(null);
-  }
 }
