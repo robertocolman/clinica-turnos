@@ -8,6 +8,7 @@ import { MedicosModule } from './medicos/medicos.module.js';
 import { Usuario } from './database/entities/usuario.entity.js';
 import { Medico } from './database/entities/medico.entity.js';
 import { Turno } from './database/entities/turno.entity.js';
+import { ReservasModule } from './reservas/reservas.module.js';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { Turno } from './database/entities/turno.entity.js';
     }),
     AuthModule,
     MedicosModule,
+    ReservasModule,
   ],
   controllers: [AppController],
   providers: [AppService],
