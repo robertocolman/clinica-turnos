@@ -13,7 +13,7 @@ DROP TYPE IF EXISTS rol_usuario CASCADE;
 DROP TYPE IF EXISTS estado_usuario CASCADE;
 DROP TYPE IF EXISTS estado_reserva CASCADE;
 
-CREATE TYPE rol_usuario AS ENUM ('ADMIN', 'MEDICO', 'PACIENTE');
+CREATE TYPE rol_usuario AS ENUM ('ADMINISTRADOR', 'MEDICO', 'PACIENTE');
 CREATE TYPE estado_usuario AS ENUM ('ACTIVO', 'INACTIVO', 'BAJA');
 CREATE TYPE estado_reserva AS ENUM ('ACTIVO', 'ATENDIDO', 'AUSENTE', 'CANCELADO');
 
@@ -58,9 +58,13 @@ CREATE INDEX idx_turnos_medico_fecha ON turnos(medico_id, fecha_hora);
 CREATE INDEX idx_turnos_paciente ON turnos(paciente_id);
 CREATE INDEX idx_turnos_estado ON turnos(estado);
 
+CREATE UNIQUE INDEX uq_turnos_medico_horario
+ON turnos (medico_id, fecha_hora)
+WHERE estado <> 'CANCELADO';
+
 -- Datos de prueba (bcrypt)
 INSERT INTO usuarios (id, documento, clave, nombres, apellidos, email, rol, estado) VALUES
-(1, '11111111', '$2b$10$uxs5QsPdFgtvRPIhnqyoYO5ou0r5pUFw9yvtmgQCfZCVhNY3skeJa', 'Admin', 'Sistema', 'admin@clinica.uner.edu.ar', 'ADMIN', 'ACTIVO'),
+(1, '11111111', '$2b$10$uxs5QsPdFgtvRPIhnqyoYO5ou0r5pUFw9yvtmgQCfZCVhNY3skeJa', 'Admin', 'Sistema', 'admin@clinica.uner.edu.ar', 'ADMINISTRADOR', 'ACTIVO'),
 (2, '22222222', '$2b$10$ilGyD0Ft79iaHBw.06WC3OY5/KC2o3vR0yBmtY0d3yZC9s.8l9Vw2', 'Carlos', 'Pérez', 'dr.perez@clinica.uner.edu.ar', 'MEDICO', 'ACTIVO'),
 (3, '33333333', '$2b$10$kdAoICOG8Ex7zpteUvZXB.k4yCOg5hRKIwfTjoUj/RfGTcP2O6X.m', 'Lucía', 'Martínez', 'paciente@gmail.com', 'PACIENTE', 'ACTIVO'),
 (4, '44444444', '$2b$10$kTCgcXbw2lCrKxFUQXUuO.ZPMa5w5t6nALwyfdMAcbYJWswIj4bJ2', 'Esteban', 'Inactivo', 'baja@clinica.uner.edu.ar', 'PACIENTE', 'BAJA');
