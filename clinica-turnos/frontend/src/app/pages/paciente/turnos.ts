@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import { AuthService } from '../../core/services/auth.service';
 import { ReservasService } from '../../core/services/reservas.service';
+import { MedicosService, Medico } from '../../core/services/medicos.service';
 
 
 @Component({
@@ -38,9 +39,18 @@ import { ReservasService } from '../../core/services/reservas.service';
         
         <div class="reserva-form">
           <h3>Reservar turno</h3>
+
           <label>Médico</label>
           <select
-            [(ngModel)]="medicoSeleccionado">
+            [(ngModel)]="medicoSeleccionado"
+            (ngModelChange)="cargarHorarios()">
+            [disabled]="cargandoMedicos || medicos.length === 0">
+
+            @if (cargandoMedicos) {
+              <option value="">Cargando médicos...</option>
+            } @else if (medicos.length === 0) {
+              <option value="">No hay médicos disponibles</option>
+            }
 
             @for (medico of medicos; track medico.id) {
               <option [value]="medico.id">
@@ -50,17 +60,23 @@ import { ReservasService } from '../../core/services/reservas.service';
           </select>
 
           <label>Fecha</label>
-
           <input
             type="date"
             [(ngModel)]="fechaSeleccionada"
+            (ngModelChange)="cargarHorarios()"
             [min]="fechaMinima"
             [max]="fechaMaxima">
 
           <label>Horario</label>
-
           <select
-            [(ngModel)]="horarioSeleccionado">
+            [(ngModel)]="horarioSeleccionado"
+            [disabled]="cargandoHorarios || horarios.length === 0">
+
+            @if (cargandoHorarios) {
+              <option value="">Consultando horarios disponibles...</option>
+            } @else {
+              <option value="">Seleccione un horario</option>
+            }
 
             @for (horario of horarios; track horario) {
               <option [value]="horario">
@@ -281,60 +297,125 @@ import { ReservasService } from '../../core/services/reservas.service';
 export class PacienteTurnosComponent {
   protected readonly authService = inject(AuthService);
   protected readonly reservasService = inject(ReservasService);
+  private readonly medicosService = inject(MedicosService);
 
   protected readonly reservas = this.reservasService.reservas;
 
-  medicos = [
-    { id: 1, nombre: 'Dr. Pérez', valor: 15000 },
-    { id: 2, nombre: 'Dra. Gómez', valor: 18000 },
-  ];
+  constructor() {
+    this.reservasService.cargarReservas();
 
-  horarios = [
-    '08:00',
-    '09:00',
-    '10:00',
-    '11:00',
-    '12:00',
-    '13:00',
-    '14:00',
-    '15:00'
-  ];
+    this.medicosService.obtenerMedicos().subscribe({
+      next: (medicos) => {
+        this.medicos = medicos;
+        this.cargandoMedicos = false;
+
+        if (medicos.length > 0) {
+          this.medicoSeleccionado = medicos[0].id;
+        }
+      },
+      error: (error) => {
+        this.cargandoMedicos = false;
+        console.error('Error al cargar médicos:', error);
+        alert('No se pudo cargar la lista de médicos');
+      }
+    });
+  }
+
+  medicos: Medico[] = [];
+  cargandoMedicos = true;
+
+  horarios: string[] = [];
+  cargandoHorarios = false;
+  mensajeHorarios = '';
 
   fechaMinima = new Date().toISOString().split('T')[0];
 
   fechaMaxima = new Date(
     Date.now() + (30 * 24 * 60 * 60 * 1000)
   ).toISOString().split('T')[0];  
+ 
   
-  medicoSeleccionado = 1;
+  medicoSeleccionado = 0;
   fechaSeleccionada = '';
   horarioSeleccionado = '08:00';
   mensajeExito = '';
   
   cancelarTurno(id: number): void {
-  this.reservasService.cancelarReserva(id);
+    if (!confirm('¿Estás segura de cancelar este turno?')) {
+      return;
+    }
+
+    this.reservasService.cancelarReserva(id).subscribe({
+      next: () => {
+        this.mensajeExito = 'Turno cancelado correctamente';
+        this.reservasService.cargarReservas();
+      },
+      error: (error) => {
+        alert(error.error?.message || 'No se pudo cancelar el turno');
+        console.error('Error al cancelar:', error);
+      }
+    });
   }
 
+  cargarHorarios(): void {
+    this.horarios = [];
+    this.horarioSeleccionado = '';
+    this.mensajeHorarios = '';
+
+    if (!this.medicoSeleccionado || !this.fechaSeleccionada) {
+      return;
+    }
+
+    this.cargandoHorarios = true;
+
+    this.reservasService.obtenerDisponibilidad(
+      Number(this.medicoSeleccionado),
+      this.fechaSeleccionada
+    ).subscribe({
+      next: (horarios) => {
+        this.horarios = horarios;
+        this.horarioSeleccionado = horarios[0] ?? '';
+        this.cargandoHorarios = false;
+
+        if (horarios.length === 0) {
+          this.mensajeHorarios = 'No hay horarios disponibles para esta fecha';
+        }
+      },
+      error: (error) => {
+        this.cargandoHorarios = false;
+        this.mensajeHorarios = 'No se pudieron cargar los horarios';
+        console.error('Error al consultar disponibilidad:', error);
+      }
+    });
+  }
   reservarTurno(): void {
 
     const medico = this.medicos.find(
       m => m.id === Number(this.medicoSeleccionado)
     );
 
-    if (!medico || !this.fechaSeleccionada) {
-      alert('Debe seleccionar una fecha');
+    if (!medico || !this.fechaSeleccionada || !this.horarioSeleccionado) {
+      alert('Debe seleccionar un médico, una fecha y un horario disponible');
       return;
     }
 
     this.reservasService.crearReserva(
       medico.id,
-      2,
-      `${this.fechaSeleccionada}T${this.horarioSeleccionado}:00`,
-      medico.valor
-    );
-    this.mensajeExito = '✅ Turno reservado correctamente';
-    this.medicoSeleccionado = 1;
-    this.fechaSeleccionada = '';
-    this.horarioSeleccionado = '08:00';
-    }
+      `${this.fechaSeleccionada}T${this.horarioSeleccionado}:00`
+    ).subscribe({
+      next: () => {
+        this.mensajeExito = '✅ Turno reservado correctamente';
+        this.medicoSeleccionado = this.medicos[0]?.id ?? 0;
+        this.fechaSeleccionada = '';
+        this.horarios = [];
+        this.horarioSeleccionado = '';
+        this.mensajeHorarios = '';
+      },
+      error: (error) => {
+        this.mensajeExito = '';
+        alert(error.error?.message || 'No se pudo reservar el turno');
+        console.error('Error al reservar:', error);
+      },  
+    });
+  }
 }

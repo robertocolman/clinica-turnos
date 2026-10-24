@@ -1,6 +1,6 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { AuthService } from '../../core/services/auth.service';
-import { ReservasService } from '../../core/services/reservas.service';
+import { ReservasService, MedicoOpcion, PacienteOpcion } from '../../core/services/reservas.service';
 import { FormsModule } from '@angular/forms';
 
 
@@ -36,7 +36,7 @@ import { FormsModule } from '@angular/forms';
             }
           </select>
           <label>Médico</label>
-          <select [(ngModel)]="medicoSeleccionado">
+          <select [(ngModel)]="medicoSeleccionado" (ngModelChange)="cargarHorarios()">
             @for (medico of medicos; track medico.id) {
               <option [value]="medico.id">
                 {{ medico.nombre }}
@@ -46,7 +46,7 @@ import { FormsModule } from '@angular/forms';
           <label>Fecha</label>
           <input
            type="date"
-           [(ngModel)]="fechaSeleccionada">
+           [(ngModel)]="fechaSeleccionada" (ngModelChange)="cargarHorarios()" [min]="fechaMinima" [max]="fechaMaxima">
           <label>Horario</label>
           <select [(ngModel)]="horarioSeleccionado">
             @for (horario of horarios; track horario) {
@@ -55,6 +55,7 @@ import { FormsModule } from '@angular/forms';
             </option>
             }
           </select>
+          <p>{{ mensaje }}</p>
           <button
             class="btn-reservar"
             (click)="reservarParaPaciente()">
@@ -73,8 +74,7 @@ import { FormsModule } from '@angular/forms';
           <label>Médico</label>
           <select [(ngModel)]="filtroMedico">
             <option value="">Todos</option>
-            <option value="1">Dr. Pérez</option>
-            <option value="2">Dra. Gómez</option>
+            @for (medico of medicos; track medico.id) { <option [value]="medico.id">{{ medico.nombre }}</option> }
           </select>
           <label>Fecha</label>
           <input
@@ -93,6 +93,7 @@ import { FormsModule } from '@angular/forms';
                 <th>Fecha</th>
                 <th>Estado</th>
                 <th>Valor</th>
+                <th>Acción</th>
               </tr>
             </thead>
             <tbody>
@@ -101,7 +102,7 @@ import { FormsModule } from '@angular/forms';
                   <td>{{ reserva.id }}</td>
                   <td>{{ obtenerNombrePaciente(reserva.id_paciente) }}</td>
                   <td>{{ obtenerNombreMedico(reserva.id_medico) }}</td>
-                  <td>{{ reserva.fecha_hora }}</td>
+                  <td>{{ formatearFecha(reserva.fecha_hora) }}</td>
                   <td>
                     <span
                       class="estado"
@@ -111,6 +112,7 @@ import { FormsModule } from '@angular/forms';
                     </span>
                   </td>
                   <td>$ {{ reserva.valor_consulta }}</td>
+                  <td>@if (puedeCancelar(reserva.fecha_hora, reserva.estado)) { <button (click)="cancelarTurno(reserva.id)">Cancelar</button> }</td>
                 </tr>
               }
             </tbody>
@@ -242,102 +244,79 @@ import { FormsModule } from '@angular/forms';
     }
   `],
 })
-export class AdminPanelComponent {
+export class AdminPanelComponent implements OnInit {
   protected readonly authService = inject(AuthService);
   protected readonly reservasService = inject(ReservasService);
-
   protected readonly reservas = this.reservasService.reservas;
-  
-  pacientes = [
-    { id: 1, nombre: 'Juan Pérez' },
-    { id: 2, nombre: 'Ana Gómez' },
-    { id: 3, nombre: 'Carlos López' }
-  ];
-  medicos = [
-    { id: 1, nombre: 'Dr. Pérez', valor: 15000 },
-    { id: 2, nombre: 'Dra. Gómez', valor: 18000 }
-  ];
-  horarios = [
-    '08:00',
-    '09:00',
-    '10:00',
-    '11:00',
-    '12:00',
-    '13:00',
-    '14:00',
-    '15:00'
-  ];
-
-  medicoSeleccionado = 1;
+  pacientes: PacienteOpcion[] = [];
+  medicos: MedicoOpcion[] = [];
+  horarios: string[] = [];
+  medicoSeleccionado = 0;
+  pacienteSeleccionado = 0;
   fechaSeleccionada = '';
-  horarioSeleccionado = '08:00';
-  pacienteSeleccionado = 1;
+  horarioSeleccionado = '';
   filtroEstado = '';
   filtroMedico = '';
   filtroFecha = '';
+  mensaje = '';
 
-  reservasFiltradas() {
-    let reservas = this.reservas();
-
-    if (this.filtroEstado) {
-      reservas = reservas.filter(
-        r => r.estado === this.filtroEstado
-      );
-    }
-
-    if (this.filtroMedico) {
-      reservas = reservas.filter(
-        r => r.id_medico === Number(this.filtroMedico)
-      );
-    }
-    if (this.filtroFecha) {
-      reservas = reservas.filter(
-        r => r.fecha_hora.startsWith(this.filtroFecha)
-      );
-    }
-    return reservas;
+  private fechaLocal(dias = 0): string {
+    const hoy = new Date(); hoy.setDate(hoy.getDate() + dias);
+    return `${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}-${String(hoy.getDate()).padStart(2,'0')}`;
   }
-  reservarParaPaciente(): void {
-    const medico = this.medicos.find(
-      m => m.id === Number(this.medicoSeleccionado)
-    );
+  get fechaMinima(): string { return this.fechaLocal(); }
+  get fechaMaxima(): string { return this.fechaLocal(30); }
 
-    if (!medico || !this.fechaSeleccionada) {
-      return;
-    }
-
-    this.reservasService.crearReserva(
-      medico.id,
-      Number(this.pacienteSeleccionado),
-      `${this.fechaSeleccionada}T${this.horarioSeleccionado}:00`,
-      medico.valor
-    );
-  }
-  obtenerNombrePaciente(id: number): string {
-    const paciente = this.pacientes.find(
-      p => p.id === id
-    );
-
-    return paciente?.nombre ?? `Paciente ${id}`;
-
-  }
-
-  obtenerNombreMedico(id: number): string {
-    const medico = this.medicos.find(
-      m => m.id === id
-    );
-
-    return medico?.nombre ?? `Médico ${id}`;
-  }
-  formatearFecha(fecha: string): string {
-    const date = new Date(fecha);
-
-    return date.toLocaleString('es-AR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+  ngOnInit(): void {
+    this.reservasService.cargarReservas();
+    this.reservasService.obtenerMedicos().subscribe({
+      next: medicos => { this.medicos = medicos; this.medicoSeleccionado = medicos[0]?.id ?? 0; },
+      error: e => this.mensaje = this.reservasService.mensajeError(e)
+    });
+    this.reservasService.obtenerPacientes().subscribe({
+      next: pacientes => { this.pacientes = pacientes; this.pacienteSeleccionado = pacientes[0]?.id ?? 0; },
+      error: e => this.mensaje = this.reservasService.mensajeError(e)
     });
   }
+
+  cargarHorarios(): void {
+    this.horarios = []; this.horarioSeleccionado = '';
+    if (!this.medicoSeleccionado || !this.fechaSeleccionada) return;
+    this.reservasService.obtenerDisponibilidad(Number(this.medicoSeleccionado), this.fechaSeleccionada).subscribe({
+      next: horarios => { this.horarios = horarios; this.horarioSeleccionado = horarios[0] ?? ''; },
+      error: e => this.mensaje = this.reservasService.mensajeError(e)
+    });
+  }
+
+  reservasFiltradas() {
+    return this.reservas().filter(r =>
+      (!this.filtroEstado || r.estado === this.filtroEstado) &&
+      (!this.filtroMedico || r.id_medico === Number(this.filtroMedico)) &&
+      (!this.filtroFecha || r.fecha_hora.startsWith(this.filtroFecha))
+    );
+  }
+
+  reservarParaPaciente(): void {
+    if (!this.medicoSeleccionado || !this.pacienteSeleccionado || !this.fechaSeleccionada || !this.horarioSeleccionado) {
+      this.mensaje = 'Seleccioná paciente, médico, fecha y horario'; return;
+    }
+    this.reservasService.crearReserva(Number(this.medicoSeleccionado), `${this.fechaSeleccionada}T${this.horarioSeleccionado}:00`, Number(this.pacienteSeleccionado)).subscribe({
+      next: () => { this.mensaje = 'Turno reservado correctamente'; this.cargarHorarios(); },
+      error: e => this.mensaje = this.reservasService.mensajeError(e)
+    });
+  }
+
+  puedeCancelar(fecha: string, estado: string): boolean {
+    return estado === 'ACTIVO' && new Date(fecha).getTime() > Date.now();
+  }
+  cancelarTurno(id: number): void {
+    if (!confirm('¿Querés cancelar este turno?')) return;
+    this.reservasService.cancelarReserva(id).subscribe({
+      next: () => { this.mensaje = 'Turno cancelado correctamente'; this.cargarHorarios(); },
+      error: e => this.mensaje = this.reservasService.mensajeError(e)
+    });
+  }
+  obtenerNombrePaciente(id: number): string { return this.reservas().find(r => r.id_paciente === id)?.paciente_nombre ?? this.pacientes.find(p => p.id === id)?.nombre ?? `Paciente ${id}`; }
+  obtenerNombreMedico(id: number): string { return this.medicos.find(m => m.id === id)?.nombre ?? `Médico ${id}`; }
+  formatearFecha(fecha: string): string { return new Date(fecha).toLocaleString('es-AR'); }
 }

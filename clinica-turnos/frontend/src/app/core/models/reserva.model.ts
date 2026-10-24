@@ -12,4 +12,6 @@ export interface Reserva {
   fecha_hora: string;
   estado: EstadoReserva;
   valor_consulta: number;
+  medico_nombre?: string;
+  paciente_nombre?: string;
 }
