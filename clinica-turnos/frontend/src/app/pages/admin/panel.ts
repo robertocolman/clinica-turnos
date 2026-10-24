@@ -26,9 +26,10 @@ import { FormsModule } from '@angular/forms';
         </div>
        
         <div class="reserva-admin">
-          <h4>Reservar para paciente</h4>
+          <h3>Reservar para paciente</h3>
           <label>Paciente</label>
-          <select [(ngModel)]="pacienteSeleccionado">
+          <select [(ngModel)]="pacienteSeleccionado" [disabled]="cargandoPacientes">
+            <option [ngValue]="0" disabled>{{ cargandoPacientes ? 'Cargando pacientes...' : 'Seleccione un paciente' }}</option>
             @for (paciente of pacientes; track paciente.id) {
               <option [value]="paciente.id">
                 {{ paciente.nombre }}
@@ -36,7 +37,8 @@ import { FormsModule } from '@angular/forms';
             }
           </select>
           <label>Médico</label>
-          <select [(ngModel)]="medicoSeleccionado" (ngModelChange)="cargarHorarios()">
+          <select [(ngModel)]="medicoSeleccionado" (ngModelChange)="cargarHorarios()" [disabled]="cargandoMedicos">
+            <option [ngValue]="0" disabled>{{ cargandoMedicos ? 'Cargando médicos...' : 'Seleccione un médico' }}</option>
             @for (medico of medicos; track medico.id) {
               <option [value]="medico.id">
                 {{ medico.nombre }}
@@ -48,42 +50,52 @@ import { FormsModule } from '@angular/forms';
            type="date"
            [(ngModel)]="fechaSeleccionada" (ngModelChange)="cargarHorarios()" [min]="fechaMinima" [max]="fechaMaxima">
           <label>Horario</label>
-          <select [(ngModel)]="horarioSeleccionado">
+          <select [(ngModel)]="horarioSeleccionado" [disabled]="cargandoHorarios || horarios.length === 0">
+            <option value="" disabled>{{ cargandoHorarios ? 'Consultando horarios...' : 'Seleccione un horario' }}</option>
             @for (horario of horarios; track horario) {
              <option [value]="horario">
               {{ horario }}
             </option>
             }
           </select>
-          <p>{{ mensaje }}</p>
           <button
             class="btn-reservar"
             (click)="reservarParaPaciente()">
             Reservar para paciente
           </button>
-        </div>
+          </div>
 
-        <div class="filtros-admin">
-          <h4>Filtros</h4>
-          <label>Estado</label>
-          <select [(ngModel)]="filtroEstado">
-            <option value="">Todos</option>
-            <option value="ACTIVO">Activo</option>
-            <option value="CANCELADO">Cancelado</option>
-          </select>
-          <label>Médico</label>
-          <select [(ngModel)]="filtroMedico">
-            <option value="">Todos</option>
-            @for (medico of medicos; track medico.id) { <option [value]="medico.id">{{ medico.nombre }}</option> }
-          </select>
-          <label>Fecha</label>
-          <input
-            type="date"
-            [(ngModel)]="filtroFecha">
-        </div>  
+          <h3 class="titulo-turnos">Todos los turnos</h3>
+
+          <div class="filtros-admin">
+            <span class="titulo-filtros">Filtros</span>
+
+            <label>Estado</label>
+            <select [(ngModel)]="filtroEstado">
+              <option value="">Todos</option>
+              <option value="ACTIVO">Activo</option>
+              <option value="CANCELADO">Cancelado</option>
+            </select>
+
+            <label>Médico</label>
+            <select [(ngModel)]="filtroMedico">
+              <option value="">Todos</option>
+              @for (medico of medicos; track medico.id) {
+                <option [value]="medico.id">{{ medico.nombre }}</option>
+              }
+            </select>
+
+            <label>Fecha</label>
+            <input
+              type="date"
+              [(ngModel)]="filtroFecha">
+          </div>
+
+          @if (mensaje) {
+            <p class="mensaje-admin">{{ mensaje }}</p>
+          }  
 
         <div class="turnos-admin">
-          <h4>Todos los turnos</h4>
           <table class="tabla-turnos">
             <thead>
               <tr>
@@ -185,19 +197,7 @@ import { FormsModule } from '@angular/forms';
       padding-left: 1.25rem;
       line-height: 1.6;
     }
-    .filtros-admin {
-      display: flex;
-      gap: 1rem;
-      align-items: end;
-      flex-wrap: wrap;
-      margin-top: 2rem;
-      margin-bottom: 2rem;
-}
 
-    .filtros-admin select {
-      padding: 0.5rem;
-      margin-top: 0.5rem;
-    }
     .tabla-turnos {
       width: 100%;
       border-collapse: collapse;
@@ -242,6 +242,74 @@ import { FormsModule } from '@angular/forms';
       padding: 0.5rem;
       min-width: 160px;
     }
+    .btn-reservar {
+      align-self: flex-start;
+      width: auto;
+      padding: 0.8rem 1.5rem;
+      border: none;
+      border-radius: 8px;
+      background: #dc2626;
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn-reservar:hover { background: #b91c1c; }
+    .titulo-turnos {
+      margin: 35px 0 15px;
+      font-size: 20px;
+      color: #0f172a;
+    }
+
+    .filtros-admin {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 15px;
+    }
+
+    .titulo-filtros {
+      display: inline-block;
+      margin: 0 15px 0 0;
+      font-size: 17px;
+      font-weight: bold;
+      white-space: nowrap;
+    }
+
+    .filtros-admin label {
+      margin: 0;
+      white-space: nowrap;
+    }
+
+    .filtros-admin select,
+    .filtros-admin input[type="date"] {
+      box-sizing: border-box;
+      height: 36px;
+      padding: 4px 8px;
+      margin: 0;
+      font-size: 14px;
+    }
+
+    .filtros-admin select:nth-of-type(1) {
+      width: 105px;
+    }
+
+    .filtros-admin select:nth-of-type(2) {
+      width: 190px;
+    }
+
+    .filtros-admin input[type="date"] {
+      width: 145px;
+    }
+
+    .mensaje-admin {
+      margin: 12px 0 18px;
+      color: #15803d;
+      font-size: 15px;
+      font-weight: 700;
+    }
   `],
 })
 export class AdminPanelComponent implements OnInit {
@@ -259,6 +327,10 @@ export class AdminPanelComponent implements OnInit {
   filtroMedico = '';
   filtroFecha = '';
   mensaje = '';
+  cargandoPacientes = true;
+  cargandoMedicos = true;
+  cargandoHorarios = false;
+  private consultaHorarios = 0;
 
   private fechaLocal(dias = 0): string {
     const hoy = new Date(); hoy.setDate(hoy.getDate() + dias);
@@ -270,21 +342,34 @@ export class AdminPanelComponent implements OnInit {
   ngOnInit(): void {
     this.reservasService.cargarReservas();
     this.reservasService.obtenerMedicos().subscribe({
-      next: medicos => { this.medicos = medicos; this.medicoSeleccionado = medicos[0]?.id ?? 0; },
-      error: e => this.mensaje = this.reservasService.mensajeError(e)
+      next: medicos => { this.medicos = medicos; this.cargandoMedicos = false; },
+      error: e => { this.cargandoMedicos = false; this.mensaje = this.reservasService.mensajeError(e); }
     });
     this.reservasService.obtenerPacientes().subscribe({
-      next: pacientes => { this.pacientes = pacientes; this.pacienteSeleccionado = pacientes[0]?.id ?? 0; },
-      error: e => this.mensaje = this.reservasService.mensajeError(e)
+      next: pacientes => { this.pacientes = pacientes; this.cargandoPacientes = false; },
+      error: e => { this.cargandoPacientes = false; this.mensaje = this.reservasService.mensajeError(e); }
     });
   }
 
   cargarHorarios(): void {
-    this.horarios = []; this.horarioSeleccionado = '';
+    const consultaActual = ++this.consultaHorarios;
+    this.horarios = [];
+    this.horarioSeleccionado = '';
+    this.cargandoHorarios = false;
     if (!this.medicoSeleccionado || !this.fechaSeleccionada) return;
+
+    this.cargandoHorarios = true;
     this.reservasService.obtenerDisponibilidad(Number(this.medicoSeleccionado), this.fechaSeleccionada).subscribe({
-      next: horarios => { this.horarios = horarios; this.horarioSeleccionado = horarios[0] ?? ''; },
-      error: e => this.mensaje = this.reservasService.mensajeError(e)
+      next: horarios => {
+        if (consultaActual !== this.consultaHorarios) return;
+        this.horarios = horarios;
+        this.cargandoHorarios = false;
+      },
+      error: e => {
+        if (consultaActual !== this.consultaHorarios) return;
+        this.cargandoHorarios = false;
+        this.mensaje = this.reservasService.mensajeError(e);
+      }
     });
   }
 
@@ -300,8 +385,9 @@ export class AdminPanelComponent implements OnInit {
     if (!this.medicoSeleccionado || !this.pacienteSeleccionado || !this.fechaSeleccionada || !this.horarioSeleccionado) {
       this.mensaje = 'Seleccioná paciente, médico, fecha y horario'; return;
     }
+    this.mensaje = '';
     this.reservasService.crearReserva(Number(this.medicoSeleccionado), `${this.fechaSeleccionada}T${this.horarioSeleccionado}:00`, Number(this.pacienteSeleccionado)).subscribe({
-      next: () => { this.mensaje = 'Turno reservado correctamente'; this.cargarHorarios(); },
+      next: () => { this.mensaje = 'Turno reservado correctamente'; this.reservasService.cargarReservas(); this.cargarHorarios(); },
       error: e => this.mensaje = this.reservasService.mensajeError(e)
     });
   }
@@ -312,7 +398,7 @@ export class AdminPanelComponent implements OnInit {
   cancelarTurno(id: number): void {
     if (!confirm('¿Querés cancelar este turno?')) return;
     this.reservasService.cancelarReserva(id).subscribe({
-      next: () => { this.mensaje = 'Turno cancelado correctamente'; this.cargarHorarios(); },
+      next: () => { this.mensaje = 'Turno cancelado correctamente'; this.reservasService.cargarReservas(); this.cargarHorarios(); },
       error: e => this.mensaje = this.reservasService.mensajeError(e)
     });
   }
