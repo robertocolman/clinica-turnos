@@ -12,16 +12,16 @@ export const routes: Routes = [
   // Ruta publica de Login
   { path: 'login', component: LoginComponent },
 
-  // Rutas protegidas para Pacientes (y Administradores)
+  // Rutas protegidas exclusivamente para Pacientes
   {
     path: 'paciente/turnos',
     component: PacienteTurnosComponent,
-    canActivate: [authGuard, roleGuard([RolUsuario.PACIENTE, RolUsuario.ADMINISTRADOR])],
+    canActivate: [authGuard, roleGuard([RolUsuario.PACIENTE])],
   },
   {
     path: 'paciente/reservar',
     component: PacienteTurnosComponent,
-    canActivate: [authGuard, roleGuard([RolUsuario.PACIENTE, RolUsuario.ADMINISTRADOR])],
+    canActivate: [authGuard, roleGuard([RolUsuario.PACIENTE])],
   },
 
   // Rutas protegidas para Medicos (y Administradores)

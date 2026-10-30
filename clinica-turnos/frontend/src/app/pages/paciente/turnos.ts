@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, ChangeDetectorRef, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import { AuthService } from '../../core/services/auth.service';
@@ -23,8 +23,8 @@ import { MedicosService, Medico } from '../../core/services/medicos.service';
           <h3>📌 Módulo de Reservas (Frontend)</h3>
           <p>
             Desde esta pantalla usted podrá reservar nuevos turnos,
-            consultar sus reservas vigentes y cancelar turnos con hasta
-            24 horas de anticipación, sin excepciones.
+            consultar sus reservas vigentes y cancelar turnos
+            hasta el día anterior a la consulta.
           </p>
         </div>
 
@@ -43,7 +43,7 @@ import { MedicosService, Medico } from '../../core/services/medicos.service';
           <label>Médico</label>
           <select
             [(ngModel)]="medicoSeleccionado"
-            (ngModelChange)="cargarHorarios()">
+            (ngModelChange)="cargarHorarios()"
             [disabled]="cargandoMedicos || medicos.length === 0">
 
             @if (cargandoMedicos) {
@@ -85,11 +85,23 @@ import { MedicosService, Medico } from '../../core/services/medicos.service';
             }
           </select>
 
-          <button
-            class="btn-reservar"
-            (click)="reservarTurno()">
-            Reservar turno
-          </button>
+            @if (mensajeHorarios) {
+              <p class="mensaje-error" role="alert">
+                {{ mensajeHorarios }}
+              </p>
+            }
+
+            <button
+              class="btn-reservar"
+              (click)="reservarTurno()">
+              Reservar turno
+            </button>
+
+            @if (mensajeExito) {
+              <p class="mensaje-exito" role="status">
+                {{ mensajeExito }}
+              </p>
+            }
         </div>
 
         <div class="turnos-section">
@@ -121,7 +133,7 @@ import { MedicosService, Medico } from '../../core/services/medicos.service';
 
                   <td>$ {{ reserva.valor_consulta }}</td>
                   <td>
-                    @if (reserva.estado === 'ACTIVO') {
+                    @if (puedeCancelar(reserva.fecha_hora, reserva.estado)) {
                       <button
                         class="btn-cancelar"
                         (click)="cancelarTurno(reserva.id)">
@@ -291,6 +303,24 @@ import { MedicosService, Medico } from '../../core/services/medicos.service';
       background: #fee2e2;
       color: #b91c1c;
     }
+
+    .mensaje-error {
+      color: #b91c1c;
+      background-color: #fef2f2;
+      border: 1px solid #fecaca;
+      padding: 10px;
+      border-radius: 6px;
+      margin-top: 8px;
+    }
+
+    .mensaje-exito {
+      color: #166534;
+      background-color: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      padding: 10px;
+      border-radius: 6px;
+      margin-top: 8px;
+    }
   `],
 })
 
@@ -298,6 +328,7 @@ export class PacienteTurnosComponent {
   protected readonly authService = inject(AuthService);
   protected readonly reservasService = inject(ReservasService);
   private readonly medicosService = inject(MedicosService);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   protected readonly reservas = this.reservasService.reservas;
 
@@ -328,18 +359,66 @@ export class PacienteTurnosComponent {
   cargandoHorarios = false;
   mensajeHorarios = '';
 
-  fechaMinima = new Date().toISOString().split('T')[0];
+  private consultaHorarios = 0;
 
-  fechaMaxima = new Date(
-    Date.now() + (30 * 24 * 60 * 60 * 1000)
-  ).toISOString().split('T')[0];  
+  private fechaArgentina(dias = 0): string {
+    const partes = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Argentina/Buenos_Aires',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).formatToParts(new Date());
+
+    const anio = Number(
+      partes.find(p => p.type === 'year')?.value
+    );
+
+    const mes = Number(
+      partes.find(p => p.type === 'month')?.value
+    );
+
+    const dia = Number(
+      partes.find(p => p.type === 'day')?.value
+    );
+
+    const fecha = new Date(
+      Date.UTC(anio, mes - 1, dia + dias)
+    );
+
+    return fecha.toISOString().split('T')[0];
+  }
+
+fechaMinima = this.fechaArgentina();
+fechaMaxima = this.fechaArgentina(30);
  
   
   medicoSeleccionado = 0;
   fechaSeleccionada = '';
-  horarioSeleccionado = '08:00';
+  horarioSeleccionado = '';
   mensajeExito = '';
   
+    puedeCancelar(fechaHora: string, estado: string): boolean {
+      if (estado !== 'ACTIVO') {
+        return false;
+      }
+
+      const partes = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/Argentina/Buenos_Aires',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }).formatToParts(new Date());
+
+      const obtener = (tipo: string): string =>
+        partes.find(p => p.type === tipo)?.value ?? '';
+
+      const hoy =
+        `${obtener('year')}-${obtener('month')}-${obtener('day')}`;
+
+      const fechaTurno = fechaHora.substring(0, 10);
+
+      return fechaTurno > hoy;
+    }
   cancelarTurno(id: number): void {
     if (!confirm('¿Estás segura de cancelar este turno?')) {
       return;
@@ -348,7 +427,6 @@ export class PacienteTurnosComponent {
     this.reservasService.cancelarReserva(id).subscribe({
       next: () => {
         this.mensajeExito = 'Turno cancelado correctamente';
-        this.reservasService.cargarReservas();
       },
       error: (error) => {
         alert(error.error?.message || 'No se pudo cancelar el turno');
@@ -358,9 +436,12 @@ export class PacienteTurnosComponent {
   }
 
   cargarHorarios(): void {
+    const consultaActual = ++this.consultaHorarios;
+
     this.horarios = [];
     this.horarioSeleccionado = '';
     this.mensajeHorarios = '';
+    this.cargandoHorarios = false;
 
     if (!this.medicoSeleccionado || !this.fechaSeleccionada) {
       return;
@@ -373,18 +454,35 @@ export class PacienteTurnosComponent {
       this.fechaSeleccionada
     ).subscribe({
       next: (horarios) => {
+        if (consultaActual !== this.consultaHorarios) {
+          return;
+        }
+
         this.horarios = horarios;
-        this.horarioSeleccionado = horarios[0] ?? '';
+        this.horarioSeleccionado = '';
         this.cargandoHorarios = false;
 
         if (horarios.length === 0) {
-          this.mensajeHorarios = 'No hay horarios disponibles para esta fecha';
+          this.mensajeHorarios =
+            'No hay horarios disponibles para esta fecha';
         }
+        this.cdr.markForCheck();
       },
+
       error: (error) => {
+        if (consultaActual !== this.consultaHorarios) {
+          return;
+        }
+
         this.cargandoHorarios = false;
-        this.mensajeHorarios = 'No se pudieron cargar los horarios';
-        console.error('Error al consultar disponibilidad:', error);
+        this.mensajeHorarios =
+          this.reservasService.mensajeError(error);
+
+        console.error(
+          'Error al consultar disponibilidad:',
+          error
+        );
+        this.cdr.markForCheck();
       }
     });
   }
