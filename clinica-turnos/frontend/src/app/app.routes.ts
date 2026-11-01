@@ -3,6 +3,7 @@ import { LoginComponent } from './pages/login/login';
 import { PacienteTurnosComponent } from './pages/paciente/turnos';
 import { MedicoAgendaComponent } from './pages/medico/agenda';
 import { AdminPanelComponent } from './pages/admin/panel';
+import { AdminMedicosComponent } from './pages/admin/medicos';
 import { NoAutorizadoComponent } from './pages/no-autorizado/no-autorizado';
 import { authGuard } from './core/guards/auth.guard';
 import { roleGuard } from './core/guards/role.guard';
@@ -39,7 +40,7 @@ export const routes: Routes = [
   },
   {
     path: 'admin/medicos',
-    component: AdminPanelComponent,
+    component: AdminMedicosComponent,
     canActivate: [authGuard, roleGuard([RolUsuario.ADMINISTRADOR])],
   },
 

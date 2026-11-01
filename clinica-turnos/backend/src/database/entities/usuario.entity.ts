@@ -18,24 +18,25 @@ export class Usuario {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ unique: true, length: 20 })
+  @Column({ type: 'text', unique: true })
   documento: string;
 
-  @Column({ length: 255 })
+  @Column({ type: 'text' })
   clave: string;
 
-  @Column({ length: 100 })
+  @Column({ type: 'text' })
   nombres: string;
 
-  @Column({ length: 100 })
+  @Column({ type: 'text' })
   apellidos: string;
 
-  @Column({ unique: true, length: 150 })
+  @Column({ type: 'text', unique: true })
   email: string;
 
   @Column({
     type: 'enum',
     enum: RolUsuario,
+    enumName: 'roles_usuarios',
     default: RolUsuario.PACIENTE,
   })
   rol: RolUsuario;
@@ -43,6 +44,7 @@ export class Usuario {
   @Column({
     type: 'enum',
     enum: EstadoUsuario,
+    enumName: 'estados_usuarios',
     default: EstadoUsuario.ACTIVO,
   })
   estado: EstadoUsuario;

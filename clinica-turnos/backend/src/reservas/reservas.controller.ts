@@ -1,4 +1,3 @@
-
 import {
   Controller,
   Get,
@@ -13,6 +12,7 @@ import {
 import {
   ApiBearerAuth,
   ApiOperation,
+  ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
 
@@ -26,6 +26,7 @@ import type { JwtPayload } from '../auth/interfaces/jwt-payload.interface.js';
 import { ReservasService } from './reservas.service.js';
 import { CrearReservaDto } from './dto/crear-reserva.dto.js';
 import { ConsultarReservasDto } from './dto/consultar-reservas.dto.js';
+import { ConsultarDisponibilidadDto } from './dto/consultar-disponibilidad.dto.js';
 import { ReservaRespuestaDto } from './dto/reserva-respuesta.dto.js';
 
 @ApiTags('Reservas')
@@ -42,19 +43,28 @@ export class ReservasController {
   @ApiOperation({
     summary: 'Consultar horarios disponibles de un médico',
   })
+  @ApiResponse({
+    status: 200,
+    description: 'Horarios disponibles obtenidos con éxito (franja 08:00 a 16:00).',
+    type: [String],
+  })
   consultarDisponibilidad(
-    @Query('idMedico', ParseIntPipe) idMedico: number,
-    @Query('fecha') fecha: string,
-  ) {
+    @Query() query: ConsultarDisponibilidadDto,
+  ): Promise<string[]> {
     return this.reservasService.consultarDisponibilidad(
-      idMedico,
-      fecha,
+      query.idMedico,
+      query.fecha,
     );
   }
 
   @Post()
   @ApiOperation({
     summary: 'Crear una nueva reserva',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Reserva creada con éxito con valor congelado.',
+    type: ReservaRespuestaDto,
   })
   crearReserva(
     @Body() dto: CrearReservaDto,
@@ -67,6 +77,11 @@ export class ReservasController {
   @ApiOperation({
     summary: 'Listar reservas según el rol del usuario',
   })
+  @ApiResponse({
+    status: 200,
+    description: 'Listado de reservas obtenido.',
+    type: [ReservaRespuestaDto],
+  })
   listarReservas(
     @Query() filtros: ConsultarReservasDto,
     @CurrentUser() usuario: JwtPayload,
@@ -77,6 +92,11 @@ export class ReservasController {
   @Patch(':id/cancelar')
   @ApiOperation({
     summary: 'Cancelar una reserva',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Reserva cancelada con éxito si cumple con el plazo.',
+    type: ReservaRespuestaDto,
   })
   cancelarReserva(
     @Param('id', ParseIntPipe) id: number,

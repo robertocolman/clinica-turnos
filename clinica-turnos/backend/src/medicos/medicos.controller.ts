@@ -13,11 +13,16 @@ import {
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
-  ApiQuery,
 } from '@nestjs/swagger';
 import { MedicosService } from './medicos.service.js';
 import { ActualizarValorConsultaDto } from './dto/actualizar-valor-consulta.dto.js';
 import { CambiarEstadoTurnoDto } from './dto/cambiar-estado-turno.dto.js';
+import { ConsultarAgendaDto } from './dto/consultar-agenda.dto.js';
+import {
+  MedicoResponseDto,
+  MedicoPerfilResponseDto,
+  TurnoAgendaResponseDto,
+} from './dto/medico-respuesta.dto.js';
 
 // Guards y decoradores de autenticación y roles de Nahuel (P2)
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
@@ -35,10 +40,14 @@ export class MedicosController {
   @Get()
   @ApiOperation({
     summary: 'Listar médicos disponibles y valores de consulta',
-    description: 'Consumido por el frontend de pacientes para reservar turnos.',
+    description: 'Consumido por el frontend de pacientes y administradores.',
   })
-  @ApiResponse({ status: 200, description: 'Listado obtenido con éxito.' })
-  obtenerMedicos() {
+  @ApiResponse({
+    status: 200,
+    description: 'Listado obtenido con éxito.',
+    type: [MedicoResponseDto],
+  })
+  obtenerMedicos(): Promise<MedicoResponseDto[]> {
     return this.medicosService.obtenerTodos();
   }
 
@@ -50,27 +59,34 @@ export class MedicosController {
     summary: 'Consultar la agenda de turnos del médico autenticado',
     description: 'Filtra opcionalmente por fecha en formato YYYY-MM-DD.',
   })
-  @ApiQuery({
-    name: 'fecha',
-    required: false,
-    example: '2026-10-25',
-    description: 'Filtrar por fecha en formato YYYY-MM-DD',
+  @ApiResponse({
+    status: 200,
+    description: 'Agenda de turnos obtenida exitosamente.',
+    type: [TurnoAgendaResponseDto],
   })
-  @ApiResponse({ status: 200, description: 'Agenda de turnos obtenida exitosamente.' })
   obtenerMiAgenda(
     @CurrentUser() usuario: JwtPayload,
-    @Query('fecha') fecha?: string,
-  ) {
-    return this.medicosService.obtenerMiAgenda(usuario.sub, fecha);
+    @Query() query: ConsultarAgendaDto,
+  ): Promise<TurnoAgendaResponseDto[]> {
+    return this.medicosService.obtenerMiAgenda(usuario.sub, query.fecha);
   }
 
   @Get('perfil')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RolUsuario.MEDICO)
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Obtener datos y valor de consulta del médico logueado' })
-  obtenerPerfil(@CurrentUser() usuario: JwtPayload) {
-    return this.medicosService.obtenerPorUsuarioId(usuario.sub);
+  @ApiOperation({
+    summary: 'Obtener datos y valor de consulta del médico logueado (sin datos sensibles)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Perfil del médico obtenido con éxito.',
+    type: MedicoPerfilResponseDto,
+  })
+  obtenerPerfil(
+    @CurrentUser() usuario: JwtPayload,
+  ): Promise<MedicoPerfilResponseDto> {
+    return this.medicosService.obtenerPerfilSeguro(usuario.sub);
   }
 
   @Patch('valor-consulta')
@@ -81,11 +97,15 @@ export class MedicosController {
     summary: 'Actualizar honorario/valor de la consulta por el propio médico',
     description: 'Los turnos ya reservados conservan su valor congelado.',
   })
-  @ApiResponse({ status: 200, description: 'Valor de consulta actualizado.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Valor de consulta actualizado.',
+    type: MedicoResponseDto,
+  })
   actualizarValorConsulta(
     @CurrentUser() usuario: JwtPayload,
     @Body() dto: ActualizarValorConsultaDto,
-  ) {
+  ): Promise<MedicoResponseDto> {
     return this.medicosService.actualizarValorConsulta(
       usuario.sub,
       dto.valorConsulta,
@@ -100,11 +120,15 @@ export class MedicosController {
     summary: 'Modificar el valor de la consulta de un médico (Rol Administrador)',
     description: 'Operación requerida en la consigna para el perfil Administrador.',
   })
-  @ApiResponse({ status: 200, description: 'Valor de consulta actualizado por Administrador.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Valor de consulta actualizado por Administrador.',
+    type: MedicoResponseDto,
+  })
   actualizarValorConsultaAdmin(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: ActualizarValorConsultaDto,
-  ) {
+  ): Promise<MedicoResponseDto> {
     return this.medicosService.actualizarValorConsultaPorId(
       id,
       dto.valorConsulta,
@@ -119,12 +143,16 @@ export class MedicosController {
     summary: 'Registrar atención o inasistencia del paciente en un turno',
     description: 'Permite marcar el turno como ATENDIDO o AUSENTE.',
   })
-  @ApiResponse({ status: 200, description: 'Estado del turno actualizado exitosamente.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Estado del turno actualizado exitosamente.',
+    type: TurnoAgendaResponseDto,
+  })
   cambiarEstadoTurno(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: CambiarEstadoTurnoDto,
     @CurrentUser() usuario: JwtPayload,
-  ) {
+  ): Promise<TurnoAgendaResponseDto> {
     return this.medicosService.cambiarEstadoTurno(
       id,
       dto.nuevoEstado,

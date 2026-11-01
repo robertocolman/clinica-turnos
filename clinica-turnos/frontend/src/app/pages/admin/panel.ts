@@ -4,7 +4,6 @@ import { ReservasService, MedicoOpcion, PacienteOpcion } from '../../core/servic
 import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 
-
 @Component({
   standalone: true,
   imports: [FormsModule, DatePipe],
@@ -22,7 +21,8 @@ import { DatePipe } from '@angular/common';
           <h3>📌 Privilegios de Administrador</h3>
           <p>
             El rol de <strong>Administrador</strong> tiene acceso irrestricto al sistema para gestionar
-            reservas (cancelaciones hasta el momento de inicio de la consulta) y modificar los valores de consulta de los médicos.
+            reservas (cancelaciones permitidas hasta el momento exacto en que inicia la consulta),
+            reservar turnos para cualquier paciente y modificar los valores de consulta de los médicos.
           </p>
         </div>
        
@@ -42,7 +42,7 @@ import { DatePipe } from '@angular/common';
             <option [ngValue]="0" disabled>{{ cargandoMedicos ? 'Cargando médicos...' : 'Seleccione un médico' }}</option>
             @for (medico of medicos; track medico.id) {
               <option [value]="medico.id">
-                {{ medico.nombre }}
+                {{ medico.nombre }} ($ {{ medico.valor }})
               </option>
             }
           </select>
@@ -55,7 +55,7 @@ import { DatePipe } from '@angular/common';
             <option value="" disabled>{{ cargandoHorarios ? 'Consultando horarios...' : 'Seleccione un horario' }}</option>
             @for (horario of horarios; track horario) {
              <option [value]="horario">
-              {{ horario }}
+              {{ horario }} hs
             </option>
             }
           </select>
@@ -118,29 +118,45 @@ import { DatePipe } from '@angular/common';
                 <th>ID</th>
                 <th>Paciente</th>
                 <th>Médico</th>
-                <th>Fecha</th>
+                <th>Fecha y Hora</th>
                 <th>Estado</th>
-                <th>Valor</th>
+                <th>Arancel Congelado</th>
                 <th>Acción</th>
               </tr>
             </thead>
             <tbody>
               @for (reserva of reservasFiltradas(); track reserva.id) {
                 <tr>
-                  <td>{{ reserva.id }}</td>
+                  <td><strong>#{{ reserva.id }}</strong></td>
                   <td>{{ obtenerNombrePaciente(reserva.id_paciente) }}</td>
                   <td>{{ obtenerNombreMedico(reserva.id_medico) }}</td>
-                  <td>{{ reserva.fecha_hora | date:'dd/MM/yyyy HH:mm' }}</td>
+                  <td>{{ reserva.fecha_hora | date:'dd/MM/yyyy HH:mm' }} hs</td>
                   <td>
                     <span
                       class="estado"
                       [class.estado-activo]="reserva.estado === 'ACTIVO'"
+                      [class.estado-atendido]="reserva.estado === 'ATENDIDO'"
+                      [class.estado-ausente]="reserva.estado === 'AUSENTE'"
                       [class.estado-cancelado]="reserva.estado === 'CANCELADO'">
                       {{ reserva.estado }}
                     </span>
                   </td>
-                  <td>$ {{ reserva.valor_consulta }}</td>
-                  <td>@if (puedeCancelar(reserva.fecha_hora, reserva.estado)) { <button (click)="cancelarTurno(reserva.id)">Cancelar</button> }</td>
+                  <td>$ {{ reserva.valor_consulta.toLocaleString('es-AR') }}</td>
+                  <td>
+                    @if (puedeCancelar(reserva.fecha_hora, reserva.estado)) {
+                      <button class="btn-cancelar" (click)="cancelarTurno(reserva.id)">Cancelar</button>
+                    } @else if (reserva.estado === 'ACTIVO') {
+                      <span class="plazo-vencido">Iniciado</span>
+                    } @else {
+                      -
+                    }
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="7" class="empty-state">
+                    No se encontraron turnos con los filtros seleccionados.
+                  </td>
                 </tr>
               }
             </tbody>
@@ -151,7 +167,7 @@ import { DatePipe } from '@angular/common';
   `,
   styles: [`
     .page-container {
-      max-width: 900px;
+      max-width: 950px;
       margin: 2rem auto;
       padding: 0 1rem;
     }
@@ -204,16 +220,6 @@ import { DatePipe } from '@angular/common';
       color: #475569;
       font-size: 0.95rem;
     }
-    .rules-summary h4 {
-      color: #334155;
-      margin-bottom: 0.5rem;
-    }
-    .rules-summary ul {
-      color: #64748b;
-      padding-left: 1.25rem;
-      line-height: 1.6;
-    }
-
     .tabla-turnos {
       width: 100%;
       border-collapse: collapse;
@@ -228,6 +234,7 @@ import { DatePipe } from '@angular/common';
     .tabla-turnos td {
       border: 1px solid #e2e8f0;
       padding: 12px;
+      vertical-align: middle;
     }
     .tabla-turnos tr:nth-child(even) {
       background: #f8fafc;
@@ -235,16 +242,42 @@ import { DatePipe } from '@angular/common';
     .estado {
       padding: 4px 10px;
       border-radius: 999px;
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       font-weight: bold;
+      display: inline-block;
+      text-transform: uppercase;
     }
     .estado-activo {
-     background: #dcfce7;
-     color: #15803d;
+      background: #dcfce7;
+      color: #15803d;
+    }
+    .estado-atendido {
+      background: #e0f2fe;
+      color: #0369a1;
+    }
+    .estado-ausente {
+      background: #fef3c7;
+      color: #b45309;
     }
     .estado-cancelado {
       background: #fee2e2;
       color: #b91c1c;
+    }
+    .btn-cancelar {
+      background: #dc2626;
+      color: white;
+      border: none;
+      padding: 0.35rem 0.75rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    .btn-cancelar:hover { background: #b91c1c; }
+    .plazo-vencido {
+      font-size: 0.8rem;
+      color: #94a3b8;
+      font-style: italic;
     }
     .reserva-admin {
       display: flex;
@@ -276,7 +309,6 @@ import { DatePipe } from '@angular/common';
       font-size: 20px;
       color: #0f172a;
     }
-
     .filtros-admin {
       display: flex;
       flex-direction: row;
@@ -285,7 +317,6 @@ import { DatePipe } from '@angular/common';
       gap: 10px;
       margin: 0 0 15px;
     }
-
     .titulo-filtros {
       display: inline-block;
       margin: 0 15px 0 0;
@@ -293,12 +324,10 @@ import { DatePipe } from '@angular/common';
       font-weight: bold;
       white-space: nowrap;
     }
-
     .filtros-admin label {
       margin: 0;
       white-space: nowrap;
     }
-
     .filtros-admin select,
     .filtros-admin input[type="date"] {
       box-sizing: border-box;
@@ -307,24 +336,16 @@ import { DatePipe } from '@angular/common';
       margin: 0;
       font-size: 14px;
     }
-
-    .filtros-admin select:nth-of-type(1) {
-      width: 105px;
-    }
-
-    .filtros-admin select:nth-of-type(2) {
-      width: 190px;
-    }
-
-    .filtros-admin input[type="date"] {
-      width: 145px;
-    }
-
     .mensaje-admin {
       margin: 12px 0 18px;
       color: #15803d;
       font-size: 15px;
       font-weight: 700;
+    }
+    .empty-state {
+      text-align: center;
+      color: #94a3b8;
+      padding: 2rem !important;
     }
   `],
 })
@@ -405,24 +426,18 @@ export class AdminPanelComponent implements OnInit {
       this.fechaSeleccionada
     ).subscribe({
       next: horarios => {
-        if (consultaActual !== this.consultaHorarios) {
-          return;
-        }
+        if (consultaActual !== this.consultaHorarios) return;
 
         this.horarios = horarios;
         this.cargandoHorarios = false;
-
         this.cdr.markForCheck();
       },
 
       error: e => {
-        if (consultaActual !== this.consultaHorarios) {
-          return;
-        }
+        if (consultaActual !== this.consultaHorarios) return;
 
         this.cargandoHorarios = false;
         this.mensaje = this.reservasService.mensajeError(e);
-
         this.cdr.markForCheck();
       }
     });
@@ -454,6 +469,7 @@ export class AdminPanelComponent implements OnInit {
   puedeCancelar(fecha: string, estado: string): boolean {
     return estado === 'ACTIVO' && new Date(fecha).getTime() > Date.now();
   }
+
   cancelarTurno(id: number): void {
     if (!confirm('¿Querés cancelar este turno?')) return;
 
@@ -466,12 +482,16 @@ export class AdminPanelComponent implements OnInit {
         this.cargarHorarios();
       },
       error: e => {
-        this.mensajeCancelacion =
-          this.reservasService.mensajeError(e);
+        this.mensajeCancelacion = this.reservasService.mensajeError(e);
       }
     });
   }
-  obtenerNombrePaciente(id: number): string { return this.reservas().find(r => r.id_paciente === id)?.paciente_nombre ?? this.pacientes.find(p => p.id === id)?.nombre ?? `Paciente ${id}`; }
-  obtenerNombreMedico(id: number): string { return this.medicos.find(m => m.id === id)?.nombre ?? `Médico ${id}`; }
-  
+
+  obtenerNombrePaciente(id: number): string {
+    return this.reservas().find(r => r.id_paciente === id)?.paciente_nombre ?? this.pacientes.find(p => p.id === id)?.nombre ?? `Paciente #${id}`;
+  }
+
+  obtenerNombreMedico(id: number): string {
+    return this.medicos.find(m => m.id === id)?.nombre ?? `Médico #${id}`;
+  }
 }

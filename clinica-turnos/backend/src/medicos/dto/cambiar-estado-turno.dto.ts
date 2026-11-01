@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsNotEmpty } from 'class-validator';
+import { IsNotEmpty, IsIn } from 'class-validator';
 import { EstadoReserva } from '../../database/entities/turno.entity.js';
 
 export class CambiarEstadoTurnoDto {
@@ -9,7 +9,7 @@ export class CambiarEstadoTurnoDto {
     example: EstadoReserva.ATENDIDO,
   })
   @IsNotEmpty({ message: 'El estado es requerido' })
-  @IsEnum(EstadoReserva, {
+  @IsIn([EstadoReserva.ATENDIDO, EstadoReserva.AUSENTE], {
     message: 'El estado debe ser ATENDIDO o AUSENTE',
   })
   nuevoEstado: EstadoReserva;

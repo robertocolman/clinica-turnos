@@ -5,7 +5,6 @@ import { AuthService } from '../../core/services/auth.service';
 import { ReservasService } from '../../core/services/reservas.service';
 import { MedicosService, Medico } from '../../core/services/medicos.service';
 
-
 @Component({
   standalone: true,
   imports: [FormsModule, DatePipe],
@@ -110,9 +109,10 @@ import { MedicosService, Medico } from '../../core/services/medicos.service';
             <thead>
               <tr>
                 <th>ID</th>
-                <th>Fecha</th>
+                <th>Médico Profesional</th>
+                <th>Fecha y Hora</th>
                 <th>Estado</th>
-                <th>Valor</th>
+                <th>Arancel Congelado</th>
                 <th>Acción</th>
               </tr>
             </thead>
@@ -120,18 +120,21 @@ import { MedicosService, Medico } from '../../core/services/medicos.service';
             <tbody>
               @for (reserva of reservas(); track reserva.id) {
                 <tr>
-                  <td>{{ reserva.id }}</td>
-                  <td>{{ reserva.fecha_hora | date:'dd/MM/yyyy HH:mm' }}</td>
+                  <td><strong>#{{ reserva.id }}</strong></td>
+                  <td>{{ reserva.medico_nombre || 'Médico #' + reserva.id_medico }}</td>
+                  <td>{{ reserva.fecha_hora | date:'dd/MM/yyyy HH:mm' }} hs</td>
                   <td>
                     <span
                       class="estado"
                       [class.estado-activo]="reserva.estado === 'ACTIVO'"
+                      [class.estado-atendido]="reserva.estado === 'ATENDIDO'"
+                      [class.estado-ausente]="reserva.estado === 'AUSENTE'"
                       [class.estado-cancelado]="reserva.estado === 'CANCELADO'">
                       {{ reserva.estado }}
                     </span>
                   </td>
 
-                  <td>$ {{ reserva.valor_consulta }}</td>
+                  <td>$ {{ reserva.valor_consulta.toLocaleString('es-AR') }}</td>
                   <td>
                     @if (puedeCancelar(reserva.fecha_hora, reserva.estado)) {
                       <button
@@ -139,9 +142,17 @@ import { MedicosService, Medico } from '../../core/services/medicos.service';
                         (click)="cancelarTurno(reserva.id)">
                         Cancelar
                       </button>
+                    } @else if (reserva.estado === 'ACTIVO') {
+                      <span class="plazo-vencido" title="Cancelación permitida hasta el día anterior">Fuera de término</span>
                     } @else {
                       -
                     }
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="6" class="text-center" style="padding: 1.5rem; color: #94a3b8;">
+                    No posee turnos reservados actualmente.
                   </td>
                 </tr>
               }
@@ -150,11 +161,10 @@ import { MedicosService, Medico } from '../../core/services/medicos.service';
         </div>
       </div>
     </div>
-    
   `,
   styles: [`
     .page-container {
-      max-width: 900px;
+      max-width: 950px;
       margin: 2rem auto;
       padding: 0 1rem;
     }
@@ -219,24 +229,23 @@ import { MedicosService, Medico } from '../../core/services/medicos.service';
     .turnos-section {
       margin-top: 2rem;
     }
-    .turno-card {
-      border: 1px solid #cbd5e1;
-      padding: 1rem;
-      border-radius: 8px;
-      margin-bottom: 1rem;
-      background: #f8fafc;
-    }
     .btn-cancelar {
       background: #dc2626;
       color: white;
       border: none;
-      padding: 0.6rem 1rem;
+      padding: 0.4rem 0.8rem;
       border-radius: 6px;
       cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
     }
-
     .btn-cancelar:hover {
       background: #b91c1c;
+    }
+    .plazo-vencido {
+      font-size: 0.8rem;
+      color: #94a3b8;
+      font-style: italic;
     }
     
     .reserva-form {
@@ -259,6 +268,7 @@ import { MedicosService, Medico } from '../../core/services/medicos.service';
       padding: 0.8rem;
       border-radius: 6px;
       cursor: pointer;
+      font-weight: 600;
     }
 
     .btn-reservar:hover {
@@ -281,6 +291,7 @@ import { MedicosService, Medico } from '../../core/services/medicos.service';
     .tabla-turnos td {
       border: 1px solid #e2e8f0;
       padding: 12px;
+      vertical-align: middle;
     }
 
     .tabla-turnos tr:nth-child(even) {
@@ -290,15 +301,24 @@ import { MedicosService, Medico } from '../../core/services/medicos.service';
     .estado {
       padding: 4px 10px;
       border-radius: 999px;
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       font-weight: bold;
+      display: inline-block;
+      text-transform: uppercase;
     }
 
     .estado-activo {
       background: #dcfce7;
       color: #15803d;
     }
-
+    .estado-atendido {
+      background: #e0f2fe;
+      color: #0369a1;
+    }
+    .estado-ausente {
+      background: #fef3c7;
+      color: #b45309;
+    }
     .estado-cancelado {
       background: #fee2e2;
       color: #b91c1c;
@@ -321,9 +341,9 @@ import { MedicosService, Medico } from '../../core/services/medicos.service';
       border-radius: 6px;
       margin-top: 8px;
     }
+    .text-center { text-align: center; }
   `],
 })
-
 export class PacienteTurnosComponent {
   protected readonly authService = inject(AuthService);
   protected readonly reservasService = inject(ReservasService);
@@ -369,58 +389,45 @@ export class PacienteTurnosComponent {
       day: '2-digit'
     }).formatToParts(new Date());
 
-    const anio = Number(
-      partes.find(p => p.type === 'year')?.value
-    );
+    const anio = Number(partes.find(p => p.type === 'year')?.value);
+    const mes = Number(partes.find(p => p.type === 'month')?.value);
+    const dia = Number(partes.find(p => p.type === 'day')?.value);
 
-    const mes = Number(
-      partes.find(p => p.type === 'month')?.value
-    );
-
-    const dia = Number(
-      partes.find(p => p.type === 'day')?.value
-    );
-
-    const fecha = new Date(
-      Date.UTC(anio, mes - 1, dia + dias)
-    );
-
+    const fecha = new Date(Date.UTC(anio, mes - 1, dia + dias));
     return fecha.toISOString().split('T')[0];
   }
 
-fechaMinima = this.fechaArgentina();
-fechaMaxima = this.fechaArgentina(30);
- 
-  
+  fechaMinima = this.fechaArgentina();
+  fechaMaxima = this.fechaArgentina(30);
+
   medicoSeleccionado = 0;
   fechaSeleccionada = '';
   horarioSeleccionado = '';
   mensajeExito = '';
-  
-    puedeCancelar(fechaHora: string, estado: string): boolean {
-      if (estado !== 'ACTIVO') {
-        return false;
-      }
 
-      const partes = new Intl.DateTimeFormat('en-US', {
-        timeZone: 'America/Argentina/Buenos_Aires',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
-      }).formatToParts(new Date());
-
-      const obtener = (tipo: string): string =>
-        partes.find(p => p.type === tipo)?.value ?? '';
-
-      const hoy =
-        `${obtener('year')}-${obtener('month')}-${obtener('day')}`;
-
-      const fechaTurno = fechaHora.substring(0, 10);
-
-      return fechaTurno > hoy;
+  puedeCancelar(fechaHora: string, estado: string): boolean {
+    if (estado !== 'ACTIVO') {
+      return false;
     }
+
+    const partes = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Argentina/Buenos_Aires',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).formatToParts(new Date());
+
+    const obtener = (tipo: string): string =>
+      partes.find(p => p.type === tipo)?.value ?? '';
+
+    const hoy = `${obtener('year')}-${obtener('month')}-${obtener('day')}`;
+    const fechaTurno = fechaHora.substring(0, 10);
+
+    return fechaTurno > hoy;
+  }
+
   cancelarTurno(id: number): void {
-    if (!confirm('¿Estás segura de cancelar este turno?')) {
+    if (!confirm('¿Estás seguro/a de cancelar este turno?')) {
       return;
     }
 
@@ -454,40 +461,29 @@ fechaMaxima = this.fechaArgentina(30);
       this.fechaSeleccionada
     ).subscribe({
       next: (horarios) => {
-        if (consultaActual !== this.consultaHorarios) {
-          return;
-        }
+        if (consultaActual !== this.consultaHorarios) return;
 
         this.horarios = horarios;
         this.horarioSeleccionado = '';
         this.cargandoHorarios = false;
 
         if (horarios.length === 0) {
-          this.mensajeHorarios =
-            'No hay horarios disponibles para esta fecha';
+          this.mensajeHorarios = 'No hay horarios disponibles para esta fecha';
         }
         this.cdr.markForCheck();
       },
 
       error: (error) => {
-        if (consultaActual !== this.consultaHorarios) {
-          return;
-        }
+        if (consultaActual !== this.consultaHorarios) return;
 
         this.cargandoHorarios = false;
-        this.mensajeHorarios =
-          this.reservasService.mensajeError(error);
-
-        console.error(
-          'Error al consultar disponibilidad:',
-          error
-        );
+        this.mensajeHorarios = this.reservasService.mensajeError(error);
         this.cdr.markForCheck();
       }
     });
   }
-  reservarTurno(): void {
 
+  reservarTurno(): void {
     const medico = this.medicos.find(
       m => m.id === Number(this.medicoSeleccionado)
     );

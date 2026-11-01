@@ -15,22 +15,23 @@ export class Medico {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ name: 'usuario_id' })
+  @Column({ name: 'id_usuario' })
   usuarioId: number;
 
   @OneToOne(() => Usuario, (usuario: Usuario) => usuario.medico, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'usuario_id' })
+  @JoinColumn({ name: 'id_usuario' })
   usuario: Relation<Usuario>;
 
-  @Column({ length: 100 })
+  @Column({ type: 'int', unique: true, default: 10000 })
+  matricula: number;
+
+  @Column({ type: 'text', default: 'Clínica Médica' })
   especialidad: string;
 
   @Column({
     name: 'valor_consulta',
-    type: 'decimal',
-    precision: 10,
-    scale: 2,
-    default: 15000.0,
+    type: 'int',
+    default: 15000,
   })
   valorConsulta: number;
 

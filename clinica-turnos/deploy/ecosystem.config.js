@@ -1,9 +1,11 @@
+// Configuración de PM2 para despliegue del Backend
+// Nota: Compatible tanto en Linux como en Windows
 module.exports = {
   apps: [
     {
       name: 'clinica-backend',
       cwd: './clinica-turnos/backend',
-      script: 'dist/src/main.js',
+      script: 'dist/main.js',
       instances: 1,
       autorestart: true,
       watch: false,

@@ -8,25 +8,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Medico } from '../database/entities/medico.entity.js';
 import { Turno, EstadoReserva } from '../database/entities/turno.entity.js';
-
-export interface MedicoResponse {
-  id: number;
-  usuarioId: number;
-  nombreCompleto: string;
-  especialidad: string;
-  valorConsulta: number;
-}
-
-export interface TurnoAgendaResponse {
-  id: number;
-  pacienteId: number;
-  pacienteNombre: string;
-  pacienteDocumento: string;
-  medicoId: number;
-  fechaHora: string;
-  estado: EstadoReserva;
-  valorConsulta: number;
-}
+import type {
+  MedicoResponseDto,
+  MedicoPerfilResponseDto,
+  TurnoAgendaResponseDto,
+} from './dto/medico-respuesta.dto.js';
 
 @Injectable()
 export class MedicosService {
@@ -40,14 +26,16 @@ export class MedicosService {
   /**
    * Obtiene la lista de médicos clínicos disponibles para la reserva de turnos.
    */
-  async obtenerTodos(): Promise<MedicoResponse[]> {
+  async obtenerTodos(): Promise<MedicoResponseDto[]> {
     const medicos = await this.medicoRepository.find({
       relations: { usuario: true },
+      order: { id: 'ASC' },
     });
 
     return medicos.map((m) => ({
       id: m.id,
       usuarioId: m.usuarioId,
+      matricula: m.matricula,
       nombreCompleto: m.usuario
         ? `Dr./Dra. ${m.usuario.nombres} ${m.usuario.apellidos}`
         : `Médico #${m.id}`,
@@ -57,7 +45,34 @@ export class MedicosService {
   }
 
   /**
-   * Obtiene la información profesional del médico asociado a un usuario.
+   * Obtiene la información profesional del médico logueado SIN exponer contraseñas ni datos sensibles.
+   */
+  async obtenerPerfilSeguro(usuarioId: number): Promise<MedicoPerfilResponseDto> {
+    const medico = await this.medicoRepository.findOne({
+      where: { usuarioId },
+      relations: { usuario: true },
+    });
+
+    if (!medico) {
+      throw new NotFoundException(
+        'No se encontró el perfil profesional del médico para este usuario',
+      );
+    }
+
+    return {
+      id: medico.id,
+      usuarioId: medico.usuarioId,
+      matricula: medico.matricula,
+      especialidad: medico.especialidad,
+      valorConsulta: Number(medico.valorConsulta),
+      nombres: medico.usuario?.nombres ?? '',
+      apellidos: medico.usuario?.apellidos ?? '',
+      email: medico.usuario?.email ?? '',
+    };
+  }
+
+  /**
+   * Obtiene la entidad Medico para uso interno del servicio.
    */
   async obtenerPorUsuarioId(usuarioId: number): Promise<Medico> {
     const medico = await this.medicoRepository.findOne({
@@ -80,21 +95,21 @@ export class MedicosService {
   async obtenerMiAgenda(
     usuarioId: number,
     fechaFiltro?: string,
-  ): Promise<TurnoAgendaResponse[]> {
+  ): Promise<TurnoAgendaResponseDto[]> {
     const medico = await this.obtenerPorUsuarioId(usuarioId);
 
     const queryBuilder = this.turnoRepository
       .createQueryBuilder('turno')
       .leftJoinAndSelect('turno.paciente', 'paciente')
-      .where('turno.medico_id = :medicoId', { medicoId: medico.id });
+      .where('turno.medicoId = :medicoId', { medicoId: medico.id });
 
     if (fechaFiltro) {
-      queryBuilder.andWhere("TO_CHAR(turno.fecha_hora, 'YYYY-MM-DD') = :fecha", {
+      queryBuilder.andWhere("TO_CHAR(turno.fechaHora, 'YYYY-MM-DD') = :fecha", {
         fecha: fechaFiltro,
       });
     }
 
-    queryBuilder.orderBy('turno.fecha_hora', 'ASC');
+    queryBuilder.orderBy('turno.fechaHora', 'ASC');
 
     const turnos = await queryBuilder.getMany();
 
@@ -106,7 +121,8 @@ export class MedicosService {
         : 'Paciente no especificado',
       pacienteDocumento: t.paciente ? t.paciente.documento : '-',
       medicoId: t.medicoId,
-      fechaHora: t.fechaHora instanceof Date ? t.fechaHora.toISOString() : String(t.fechaHora),
+      // Formato local uniforme YYYY-MM-DDTHH:mm:ss sin corrimiento UTC
+      fechaHora: this.formatearFechaLocal(t.fechaHora),
       estado: t.estado,
       valorConsulta: Number(t.valorConsulta),
     }));
@@ -120,19 +136,20 @@ export class MedicosService {
   async actualizarValorConsulta(
     usuarioId: number,
     nuevoValor: number,
-  ): Promise<MedicoResponse> {
+  ): Promise<MedicoResponseDto> {
     const medico = await this.obtenerPorUsuarioId(usuarioId);
 
     if (nuevoValor <= 0) {
       throw new BadRequestException('El valor de la consulta debe ser positivo');
     }
 
-    medico.valorConsulta = nuevoValor;
+    medico.valorConsulta = Math.round(nuevoValor);
     await this.medicoRepository.save(medico);
 
     return {
       id: medico.id,
       usuarioId: medico.usuarioId,
+      matricula: medico.matricula,
       nombreCompleto: medico.usuario
         ? `Dr./Dra. ${medico.usuario.nombres} ${medico.usuario.apellidos}`
         : `Médico #${medico.id}`,
@@ -148,7 +165,7 @@ export class MedicosService {
   async actualizarValorConsultaPorId(
     medicoId: number,
     nuevoValor: number,
-  ): Promise<MedicoResponse> {
+  ): Promise<MedicoResponseDto> {
     const medico = await this.medicoRepository.findOne({
       where: { id: medicoId },
       relations: { usuario: true },
@@ -162,12 +179,13 @@ export class MedicosService {
       throw new BadRequestException('El valor de la consulta debe ser positivo');
     }
 
-    medico.valorConsulta = nuevoValor;
+    medico.valorConsulta = Math.round(nuevoValor);
     await this.medicoRepository.save(medico);
 
     return {
       id: medico.id,
       usuarioId: medico.usuarioId,
+      matricula: medico.matricula,
       nombreCompleto: medico.usuario
         ? `Dr./Dra. ${medico.usuario.nombres} ${medico.usuario.apellidos}`
         : `Médico #${medico.id}`,
@@ -183,7 +201,7 @@ export class MedicosService {
     turnoId: number,
     nuevoEstado: EstadoReserva,
     usuarioId: number,
-  ): Promise<TurnoAgendaResponse> {
+  ): Promise<TurnoAgendaResponseDto> {
     const medico = await this.obtenerPorUsuarioId(usuarioId);
     const turno = await this.turnoRepository.findOne({
       where: { id: turnoId },
@@ -215,9 +233,20 @@ export class MedicosService {
         : 'Paciente',
       pacienteDocumento: turno.paciente ? turno.paciente.documento : '-',
       medicoId: turno.medicoId,
-      fechaHora: turno.fechaHora instanceof Date ? turno.fechaHora.toISOString() : String(turno.fechaHora),
+      fechaHora: this.formatearFechaLocal(turno.fechaHora),
       estado: turno.estado,
       valorConsulta: Number(turno.valorConsulta),
     };
+  }
+
+  private formatearFechaLocal(fecha: Date | string): string {
+    if (typeof fecha === 'string') return fecha;
+    const anio = fecha.getFullYear();
+    const mes = String(fecha.getMonth() + 1).padStart(2, '0');
+    const dia = String(fecha.getDate()).padStart(2, '0');
+    const horas = String(fecha.getHours()).padStart(2, '0');
+    const minutos = String(fecha.getMinutes()).padStart(2, '0');
+    const segundos = String(fecha.getSeconds()).padStart(2, '0');
+    return `${anio}-${mes}-${dia}T${horas}:${minutos}:${segundos}`;
   }
 }

@@ -2,82 +2,97 @@
 -- SISTEMA DE GESTION DE TURNOS CLINICOS
 -- Trabajo Practico Integrador - UNER (DAW 2026)
 -- Script de Creacion e Inicializacion de Base de Datos (PostgreSQL)
--- Responsable: P1 - Roberto Colman
+-- Modelo exacto segun DER oficial de consignas
 -- ==============================================================================
 
+DROP TABLE IF EXISTS reservas CASCADE;
 DROP TABLE IF EXISTS turnos CASCADE;
 DROP TABLE IF EXISTS medicos CASCADE;
 DROP TABLE IF EXISTS usuarios CASCADE;
 
+DROP TYPE IF EXISTS roles_usuarios CASCADE;
 DROP TYPE IF EXISTS rol_usuario CASCADE;
+DROP TYPE IF EXISTS estados_usuarios CASCADE;
 DROP TYPE IF EXISTS estado_usuario CASCADE;
+DROP TYPE IF EXISTS estados_reservas CASCADE;
 DROP TYPE IF EXISTS estado_reserva CASCADE;
 
-CREATE TYPE rol_usuario AS ENUM ('ADMINISTRADOR', 'MEDICO', 'PACIENTE');
-CREATE TYPE estado_usuario AS ENUM ('ACTIVO', 'INACTIVO', 'BAJA');
-CREATE TYPE estado_reserva AS ENUM ('ACTIVO', 'ATENDIDO', 'AUSENTE', 'CANCELADO');
+CREATE TYPE roles_usuarios AS ENUM ('ADMINISTRADOR', 'MEDICO', 'PACIENTE');
+CREATE TYPE estados_usuarios AS ENUM ('ACTIVO', 'BAJA');
+CREATE TYPE estados_reservas AS ENUM ('ACTIVO', 'ATENDIDO', 'AUSENTE', 'CANCELADO');
 
 CREATE TABLE usuarios (
     id SERIAL PRIMARY KEY,
-    documento VARCHAR(20) NOT NULL UNIQUE,
-    clave VARCHAR(255) NOT NULL,
-    nombres VARCHAR(100) NOT NULL,
-    apellidos VARCHAR(100) NOT NULL,
-    email VARCHAR(150) NOT NULL UNIQUE,
-    rol rol_usuario NOT NULL DEFAULT 'PACIENTE',
-    estado estado_usuario NOT NULL DEFAULT 'ACTIVO',
+    documento TEXT NOT NULL UNIQUE,
+    clave TEXT NOT NULL,
+    nombres TEXT NOT NULL,
+    apellidos TEXT NOT NULL,
+    email TEXT NOT NULL UNIQUE,
+    rol roles_usuarios NOT NULL DEFAULT 'PACIENTE',
+    estado estados_usuarios NOT NULL DEFAULT 'ACTIVO',
     creado_en TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     actualizado_en TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE medicos (
     id SERIAL PRIMARY KEY,
-    usuario_id INT NOT NULL UNIQUE,
-    especialidad VARCHAR(100) NOT NULL,
-    valor_consulta NUMERIC(10, 2) NOT NULL DEFAULT 15000.00,
-    CONSTRAINT fk_medico_usuario FOREIGN KEY (usuario_id) 
+    id_usuario INT NOT NULL UNIQUE,
+    matricula INT NOT NULL UNIQUE,
+    especialidad TEXT NOT NULL DEFAULT 'Clínica Médica',
+    valor_consulta INT NOT NULL DEFAULT 15000,
+    CONSTRAINT fk_medico_usuario FOREIGN KEY (id_usuario) 
         REFERENCES usuarios(id) ON DELETE CASCADE
 );
 
-CREATE TABLE turnos (
+CREATE TABLE reservas (
     id SERIAL PRIMARY KEY,
-    paciente_id INT NOT NULL,
-    medico_id INT NOT NULL,
+    id_medico INT NOT NULL,
+    id_paciente INT NOT NULL,
     fecha_hora TIMESTAMP WITHOUT TIME ZONE NOT NULL,
-    estado estado_reserva NOT NULL DEFAULT 'ACTIVO',
-    valor_consulta NUMERIC(10, 2) NOT NULL,
+    estado estados_reservas NOT NULL DEFAULT 'ACTIVO',
+    valor_consulta INT NOT NULL,
     creado_en TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     cancelado_en TIMESTAMP WITHOUT TIME ZONE NULL,
-    CONSTRAINT fk_turno_paciente FOREIGN KEY (paciente_id) 
-        REFERENCES usuarios(id) ON DELETE RESTRICT,
-    CONSTRAINT fk_turno_medico FOREIGN KEY (medico_id) 
-        REFERENCES medicos(id) ON DELETE RESTRICT
+    CONSTRAINT fk_reserva_medico FOREIGN KEY (id_medico) 
+        REFERENCES medicos(id) ON DELETE RESTRICT,
+    CONSTRAINT fk_reserva_paciente FOREIGN KEY (id_paciente) 
+        REFERENCES usuarios(id) ON DELETE RESTRICT
 );
 
-CREATE INDEX idx_turnos_medico_fecha ON turnos(medico_id, fecha_hora);
-CREATE INDEX idx_turnos_paciente ON turnos(paciente_id);
-CREATE INDEX idx_turnos_estado ON turnos(estado);
+-- Indices para busquedas optimas y rendimiento
+CREATE INDEX idx_reservas_medico_fecha ON reservas(id_medico, fecha_hora);
+CREATE INDEX idx_reservas_paciente ON reservas(id_paciente);
+CREATE INDEX idx_reservas_estado ON reservas(estado);
 
-CREATE UNIQUE INDEX uq_turnos_medico_horario
-ON turnos (medico_id, fecha_hora)
+-- Regla de negocio critica: Un medico no puede tener 2 reservas en el mismo horario
+-- (a excepcion de los turnos cancelados)
+CREATE UNIQUE INDEX uq_reservas_medico_horario
+ON reservas (id_medico, fecha_hora)
 WHERE estado <> 'CANCELADO';
 
--- Datos de prueba (bcrypt)
+-- ==============================================================================
+-- Datos de prueba para evaluacion y demostracion
+-- Claves encriptadas con bcrypt ($2b$10$)
+-- ==============================================================================
 INSERT INTO usuarios (id, documento, clave, nombres, apellidos, email, rol, estado) VALUES
 (1, '11111111', '$2b$10$uxs5QsPdFgtvRPIhnqyoYO5ou0r5pUFw9yvtmgQCfZCVhNY3skeJa', 'Admin', 'Sistema', 'admin@clinica.uner.edu.ar', 'ADMINISTRADOR', 'ACTIVO'),
 (2, '22222222', '$2b$10$ilGyD0Ft79iaHBw.06WC3OY5/KC2o3vR0yBmtY0d3yZC9s.8l9Vw2', 'Carlos', 'Pérez', 'dr.perez@clinica.uner.edu.ar', 'MEDICO', 'ACTIVO'),
 (3, '33333333', '$2b$10$kdAoICOG8Ex7zpteUvZXB.k4yCOg5hRKIwfTjoUj/RfGTcP2O6X.m', 'Lucía', 'Martínez', 'paciente@gmail.com', 'PACIENTE', 'ACTIVO'),
-(4, '44444444', '$2b$10$kTCgcXbw2lCrKxFUQXUuO.ZPMa5w5t6nALwyfdMAcbYJWswIj4bJ2', 'Esteban', 'Inactivo', 'baja@clinica.uner.edu.ar', 'PACIENTE', 'BAJA');
+(4, '44444444', '$2b$10$kTCgcXbw2lCrKxFUQXUuO.ZPMa5w5t6nALwyfdMAcbYJWswIj4bJ2', 'Esteban', 'Inactivo', 'baja@clinica.uner.edu.ar', 'PACIENTE', 'BAJA'),
+(5, '55555555', '$2b$10$ilGyD0Ft79iaHBw.06WC3OY5/KC2o3vR0yBmtY0d3yZC9s.8l9Vw2', 'Mariana', 'Gómez', 'dra.gomez@clinica.uner.edu.ar', 'MEDICO', 'ACTIVO'),
+(6, '66666666', '$2b$10$kdAoICOG8Ex7zpteUvZXB.k4yCOg5hRKIwfTjoUj/RfGTcP2O6X.m', 'Juan Pablo', 'Rodríguez', 'juan.rodriguez@gmail.com', 'PACIENTE', 'ACTIVO');
 
 SELECT setval('usuarios_id_seq', (SELECT MAX(id) FROM usuarios));
 
-INSERT INTO medicos (id, usuario_id, especialidad, valor_consulta) VALUES
-(1, 2, 'Medicina Clínica General', 15000.00);
+INSERT INTO medicos (id, id_usuario, matricula, especialidad, valor_consulta) VALUES
+(1, 2, 45892, 'Clínica Médica General', 15000),
+(2, 5, 52140, 'Clínica Médica General', 18000);
 
 SELECT setval('medicos_id_seq', (SELECT MAX(id) FROM medicos));
 
-INSERT INTO turnos (id, paciente_id, medico_id, fecha_hora, estado, valor_consulta) VALUES
-(1, 3, 1, '2026-10-25 09:00:00', 'ACTIVO', 15000.00),
-(2, 3, 1, '2026-10-28 11:00:00', 'CANCELADO', 15000.00);
+INSERT INTO reservas (id, id_medico, id_paciente, fecha_hora, estado, valor_consulta) VALUES
+(1, 1, 3, '2026-11-10 09:00:00', 'ACTIVO', 15000),
+(2, 1, 3, '2026-11-12 11:00:00', 'CANCELADO', 15000),
+(3, 2, 6, '2026-11-10 10:00:00', 'ACTIVO', 18000);
 
-SELECT setval('turnos_id_seq', (SELECT MAX(id) FROM turnos));
+SELECT setval('reservas_id_seq', (SELECT MAX(id) FROM reservas));

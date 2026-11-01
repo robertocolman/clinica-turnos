@@ -17,23 +17,23 @@ export enum EstadoReserva {
   CANCELADO = 'CANCELADO',
 }
 
-@Entity('turnos')
+@Entity('reservas')
 export class Turno {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ name: 'paciente_id' })
+  @Column({ name: 'id_paciente' })
   pacienteId: number;
 
   @ManyToOne(() => Usuario, (usuario: Usuario) => usuario.turnosComoPaciente)
-  @JoinColumn({ name: 'paciente_id' })
+  @JoinColumn({ name: 'id_paciente' })
   paciente: Relation<Usuario>;
 
-  @Column({ name: 'medico_id' })
+  @Column({ name: 'id_medico' })
   medicoId: number;
 
   @ManyToOne(() => Medico, (medico: Medico) => medico.turnos)
-  @JoinColumn({ name: 'medico_id' })
+  @JoinColumn({ name: 'id_medico' })
   medico: Relation<Medico>;
 
   @Column({ name: 'fecha_hora', type: 'timestamp without time zone' })
@@ -42,19 +42,18 @@ export class Turno {
   @Column({
     type: 'enum',
     enum: EstadoReserva,
+    enumName: 'estados_reservas',
     default: EstadoReserva.ACTIVO,
   })
   estado: EstadoReserva;
 
   /**
    * REGLA DE NEGOCIO CRITICA:
-   * El valor queda congelado al momento exacto de la reserva.
+   * El valor queda congelado al momento exacto de la reserva (tipo entero en DER).
    */
   @Column({
     name: 'valor_consulta',
-    type: 'decimal',
-    precision: 10,
-    scale: 2,
+    type: 'int',
   })
   valorConsulta: number;
 
