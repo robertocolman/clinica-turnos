@@ -1,9 +1,11 @@
--- ==============================================================================
+﻿-- ==============================================================================
 -- SISTEMA DE GESTION DE TURNOS CLINICOS
 -- Trabajo Practico Integrador - UNER (DAW 2026)
 -- Script de Creacion e Inicializacion de Base de Datos (PostgreSQL)
 -- Modelo exacto segun DER oficial de consignas
 -- ==============================================================================
+
+SET client_encoding = 'UTF8';
 
 DROP TABLE IF EXISTS reservas CASCADE;
 DROP TABLE IF EXISTS turnos CASCADE;
@@ -38,7 +40,7 @@ CREATE TABLE medicos (
     id SERIAL PRIMARY KEY,
     id_usuario INT NOT NULL UNIQUE,
     matricula INT NOT NULL UNIQUE,
-    especialidad TEXT NOT NULL DEFAULT 'Clínica Médica',
+    especialidad TEXT NOT NULL DEFAULT 'Clinica Medica',
     valor_consulta INT NOT NULL DEFAULT 15000,
     CONSTRAINT fk_medico_usuario FOREIGN KEY (id_usuario) 
         REFERENCES usuarios(id) ON DELETE CASCADE
@@ -76,17 +78,17 @@ WHERE estado <> 'CANCELADO';
 -- ==============================================================================
 INSERT INTO usuarios (id, documento, clave, nombres, apellidos, email, rol, estado) VALUES
 (1, '11111111', '$2b$10$uxs5QsPdFgtvRPIhnqyoYO5ou0r5pUFw9yvtmgQCfZCVhNY3skeJa', 'Admin', 'Sistema', 'admin@clinica.uner.edu.ar', 'ADMINISTRADOR', 'ACTIVO'),
-(2, '22222222', '$2b$10$ilGyD0Ft79iaHBw.06WC3OY5/KC2o3vR0yBmtY0d3yZC9s.8l9Vw2', 'Carlos', 'Pérez', 'dr.perez@clinica.uner.edu.ar', 'MEDICO', 'ACTIVO'),
-(3, '33333333', '$2b$10$kdAoICOG8Ex7zpteUvZXB.k4yCOg5hRKIwfTjoUj/RfGTcP2O6X.m', 'Lucía', 'Martínez', 'paciente@gmail.com', 'PACIENTE', 'ACTIVO'),
+(2, '22222222', '$2b$10$ilGyD0Ft79iaHBw.06WC3OY5/KC2o3vR0yBmtY0d3yZC9s.8l9Vw2', 'Carlos', 'Perez', 'dr.perez@clinica.uner.edu.ar', 'MEDICO', 'ACTIVO'),
+(3, '33333333', '$2b$10$kdAoICOG8Ex7zpteUvZXB.k4yCOg5hRKIwfTjoUj/RfGTcP2O6X.m', 'Lucia', 'Martinez', 'paciente@gmail.com', 'PACIENTE', 'ACTIVO'),
 (4, '44444444', '$2b$10$kTCgcXbw2lCrKxFUQXUuO.ZPMa5w5t6nALwyfdMAcbYJWswIj4bJ2', 'Esteban', 'Inactivo', 'baja@clinica.uner.edu.ar', 'PACIENTE', 'BAJA'),
-(5, '55555555', '$2b$10$ilGyD0Ft79iaHBw.06WC3OY5/KC2o3vR0yBmtY0d3yZC9s.8l9Vw2', 'Mariana', 'Gómez', 'dra.gomez@clinica.uner.edu.ar', 'MEDICO', 'ACTIVO'),
-(6, '66666666', '$2b$10$kdAoICOG8Ex7zpteUvZXB.k4yCOg5hRKIwfTjoUj/RfGTcP2O6X.m', 'Juan Pablo', 'Rodríguez', 'juan.rodriguez@gmail.com', 'PACIENTE', 'ACTIVO');
+(5, '55555555', '$2b$10$ilGyD0Ft79iaHBw.06WC3OY5/KC2o3vR0yBmtY0d3yZC9s.8l9Vw2', 'Mariana', 'Gomez', 'dra.gomez@clinica.uner.edu.ar', 'MEDICO', 'ACTIVO'),
+(6, '66666666', '$2b$10$kdAoICOG8Ex7zpteUvZXB.k4yCOg5hRKIwfTjoUj/RfGTcP2O6X.m', 'Juan Pablo', 'Rodriguez', 'juan.rodriguez@gmail.com', 'PACIENTE', 'ACTIVO');
 
 SELECT setval('usuarios_id_seq', (SELECT MAX(id) FROM usuarios));
 
 INSERT INTO medicos (id, id_usuario, matricula, especialidad, valor_consulta) VALUES
-(1, 2, 45892, 'Clínica Médica General', 15000),
-(2, 5, 52140, 'Clínica Médica General', 18000);
+(1, 2, 45892, 'Clinica Medica General', 15000),
+(2, 5, 52140, 'Clinica Medica General', 18000);
 
 SELECT setval('medicos_id_seq', (SELECT MAX(id) FROM medicos));
 

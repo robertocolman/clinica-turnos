@@ -71,3 +71,4 @@ export class TurnoAgendaResponseDto {
   @ApiProperty({ example: 15000 })
   valorConsulta: number;
 }
+
