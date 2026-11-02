@@ -37,7 +37,7 @@ import { MedicosService, Medico } from '../../core/services/medicos.service';
         </div>
         
         <div class="reserva-form">
-          <h3>Reservar turno</h3>
+          <h3>Reservar turno</h3> 
 
           <label>Médico</label>
           <select
@@ -54,7 +54,7 @@ import { MedicosService, Medico } from '../../core/services/medicos.service';
             }
 
             @for (medico of medicos; track medico.id) {
-              <option [value]="medico.id">
+              <option [ngValue]="medico.id">
                 {{ medico.nombre }} - $ {{ medico.valor }}
               </option>
             }
