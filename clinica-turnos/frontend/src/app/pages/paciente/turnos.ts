@@ -46,9 +46,11 @@ import { MedicosService, Medico } from '../../core/services/medicos.service';
             [disabled]="cargandoMedicos || medicos.length === 0">
 
             @if (cargandoMedicos) {
-              <option value="">Cargando médicos...</option>
+              <option [ngValue]="0" disabled>Cargando médicos...</option>
             } @else if (medicos.length === 0) {
-              <option value="">No hay médicos disponibles</option>
+              <option [ngValue]="0" disabled>No hay médicos disponibles</option>
+            } @else {
+              <option [ngValue]="0" disabled>Seleccione un médico</option>
             }
 
             @for (medico of medicos; track medico.id) {
@@ -359,10 +361,7 @@ export class PacienteTurnosComponent {
       next: (medicos) => {
         this.medicos = medicos;
         this.cargandoMedicos = false;
-
-        if (medicos.length > 0) {
-          this.medicoSeleccionado = medicos[0].id;
-        }
+        this.cdr.markForCheck();
       },
       error: (error) => {
         this.cargandoMedicos = false;
@@ -499,7 +498,7 @@ export class PacienteTurnosComponent {
     ).subscribe({
       next: () => {
         this.mensajeExito = '✅ Turno reservado correctamente';
-        this.medicoSeleccionado = this.medicos[0]?.id ?? 0;
+        this.medicoSeleccionado = 0;
         this.fechaSeleccionada = '';
         this.horarios = [];
         this.horarioSeleccionado = '';
